@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --primary: 25, 113, 194;       /* Medium Blue - trust, education */
-  --primary-light: 91, 168, 237; /* Light Blue */
-  --secondary: 56, 161, 105;     /* Green - growth, learning */
-  --accent: 246, 173, 85;        /* Soft Orange - creativity, communication */
+  --primary: 17, 24, 90;         /* Navy - authority, trust, stability */
+  --primary-light: 59, 72, 195;  /* Lighter Navy/Indigo */
+  --secondary: 221, 83, 83;      /* Bold Red - energy, passion */
+  --accent: 251, 191, 36;        /* Amber - warmth, attention */
   --background: 255, 255, 255;   /* White */
   --foreground: 15, 23, 42;      /* Slate 900 */
-  --muted: 248, 250, 252;        /* Slate 50 */
+  --muted: 245, 247, 250;        /* Off-White/Light Gray */
   --muted-foreground: 100, 116, 139; /* Slate 400 */
   --card: 255, 255, 255;         /* White */
   --card-foreground: 15, 23, 42; /* Slate 900 */
@@ -31,18 +31,34 @@
 
 @layer components {
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-green-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-light to-secondary;
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
+    @apply bg-primary text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
   }
   
   .card {
-    @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary;
+  }
+  
+  .accent-card {
+    @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border-l-4 border-l-accent;
   }
   
   .section {
     @apply py-16 px-4;
+  }
+  
+  .highlight-box {
+    @apply bg-muted p-6 rounded-lg border-l-4 border-l-primary;
+  }
+  
+  .nav-link {
+    @apply text-foreground hover:text-primary transition-colors duration-200;
   }
 } 
