@@ -19,6 +19,9 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
+            <Link href="/lessons" className="text-gray-700 hover:text-primary font-medium">
+              Lessons
+            </Link>
             <Link href="/features" className="text-gray-700 hover:text-primary font-medium">
               Features
             </Link>
@@ -71,6 +74,9 @@ export default function Header() {
       {isMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-border">
+            <Link href="/lessons" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">
+              Lessons
+            </Link>
             <Link href="/features" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">
               Features
             </Link>
