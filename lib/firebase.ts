@@ -3,6 +3,10 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
+
+// Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,15 +17,24 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Initialize Analytics and export it
+// Initialize Firebase only if we're in the browser and have valid config
+let app;
+let auth;
+let db;
 let analytics;
-if (typeof window !== 'undefined') {
-  analytics = getAnalytics(app);
+
+// Only initialize Firebase if we're in the browser and have a valid API key
+if (isBrowser && firebaseConfig.apiKey) {
+  try {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    auth = getAuth(app);
+    db = getFirestore(app);
+    analytics = getAnalytics(app);
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+  }
+} else {
+  console.warn('Firebase not initialized. Missing config or running on server.');
 }
 
 export { auth, db, analytics }; 
