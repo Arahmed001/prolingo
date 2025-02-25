@@ -27,6 +27,54 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold tracking-tight;
   }
+  
+  /* High Contrast Mode */
+  body.high-contrast {
+    --primary: 0, 0, 0;          /* Black */
+    --primary-light: 0, 0, 0;    /* Black */
+    --secondary: 0, 0, 0;        /* Black */
+    --accent: 0, 0, 0;           /* Black */
+    --background: 255, 255, 255; /* White */
+    --foreground: 0, 0, 0;       /* Black */
+    --muted: 245, 245, 245;      /* Light Gray */
+    --muted-foreground: 0, 0, 0; /* Black */
+    --card: 255, 255, 255;       /* White */
+    --card-foreground: 0, 0, 0;  /* Black */
+    --border: 0, 0, 0;           /* Black */
+    --input: 0, 0, 0;            /* Black */
+    
+    background-color: white;
+    color: black;
+  }
+  
+  body.high-contrast * {
+    border-color: black !important;
+  }
+  
+  body.high-contrast .shadow-md,
+  body.high-contrast .shadow-lg,
+  body.high-contrast .shadow-xl {
+    box-shadow: 0 0 0 1px black !important;
+  }
+  
+  body.high-contrast a,
+  body.high-contrast button {
+    color: black;
+    background-color: white;
+    border: 1px solid black;
+  }
+  
+  body.high-contrast a:hover,
+  body.high-contrast button:hover {
+    background-color: #f0f0f0;
+    color: black;
+    text-decoration: underline;
+  }
+  
+  body.high-contrast .gradient-text {
+    background: none;
+    color: black;
+  }
 }
 
 @layer components {
