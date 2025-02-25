@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
@@ -17,12 +17,25 @@ export default function RegisterPage() {
   const [role, setRole] = useState('teacher'); // Default role
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
+
+  // Check if we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      setError('Authentication is only available in the browser');
+      setLoading(false);
+      return;
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -52,6 +65,15 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  // Show a loading state until we confirm we're on the client
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted">
+        <div className="text-xl font-medium text-primary">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted py-12 px-4 sm:px-6 lg:px-8">

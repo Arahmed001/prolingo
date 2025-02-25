@@ -11,22 +11,41 @@ export const dynamic = 'force-dynamic';
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setLoading(false);
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        // Redirect to login if no user is logged in
-        router.push('/login');
-      }
-    });
+    // Mark that we're on the client side
+    setIsClient(true);
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+    // Only run auth check in the browser
+    if (typeof window !== 'undefined') {
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setLoading(false);
+        if (currentUser) {
+          setUser(currentUser);
+        } else {
+          // Redirect to login if no user is logged in
+          router.push('/login');
+        }
+      });
+
+      // Cleanup subscription on unmount
+      return () => unsubscribe();
+    } else {
+      // If we're on the server, just set loading to false
+      setLoading(false);
+    }
   }, [router]);
+
+  // Show a loading state until we confirm we're on the client
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl font-medium text-primary">Loading...</div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
