@@ -111,6 +111,11 @@ export default function Footer() {
                   Privacy Policy
                 </Link>
               </li>
+              <li>
+                <Link href="/terms" className="text-base text-muted-foreground hover:text-primary">
+                  Terms of Service
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -118,6 +123,10 @@ export default function Footer() {
         <div className="mt-12 pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground text-center">
             &copy; {new Date().getFullYear()} ProLingo. All rights reserved.
+            <span className="mx-2">•</span>
+            <Link href="/privacy" className="hover:text-primary">Privacy Policy</Link>
+            <span className="mx-2">•</span>
+            <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
           </p>
         </div>
       </div>
