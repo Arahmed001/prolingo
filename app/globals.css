@@ -3,18 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --primary: 79, 70, 229;       /* Indigo */
-  --primary-light: 129, 140, 248; /* Light Indigo */
-  --secondary: 236, 72, 153;    /* Pink */
-  --accent: 249, 115, 22;       /* Orange */
-  --background: 255, 255, 255;  /* White */
-  --foreground: 15, 23, 42;     /* Slate 900 */
-  --muted: 241, 245, 249;       /* Slate 100 */
+  --primary: 25, 113, 194;       /* Medium Blue - trust, education */
+  --primary-light: 91, 168, 237; /* Light Blue */
+  --secondary: 56, 161, 105;     /* Green - growth, learning */
+  --accent: 246, 173, 85;        /* Soft Orange - creativity, communication */
+  --background: 255, 255, 255;   /* White */
+  --foreground: 15, 23, 42;      /* Slate 900 */
+  --muted: 248, 250, 252;        /* Slate 50 */
   --muted-foreground: 100, 116, 139; /* Slate 400 */
-  --card: 255, 255, 255;        /* White */
+  --card: 255, 255, 255;         /* White */
   --card-foreground: 15, 23, 42; /* Slate 900 */
-  --border: 226, 232, 240;      /* Slate 200 */
-  --input: 226, 232, 240;       /* Slate 200 */
+  --border: 226, 232, 240;       /* Slate 200 */
+  --input: 226, 232, 240;        /* Slate 200 */
 }
 
 @layer base {
@@ -31,11 +31,11 @@
 
 @layer components {
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-pink-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-green-600;
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
+    @apply bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
   }
   
   .card {
