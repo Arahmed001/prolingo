@@ -1,6 +1,5 @@
 import Link from "next/link"
 import Image from "next/image"
-import Header from "./components/Header"
 
 const features = [
   { 
@@ -23,7 +22,6 @@ const features = [
 export default function Home() {
   return (
     <>
-      <Header />
       <main className="flex min-h-screen flex-col">
         {/* Hero Section with Navy Background */}
         <section className="relative py-20 md:py-32 px-6 bg-primary text-white overflow-hidden">

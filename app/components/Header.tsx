@@ -41,7 +41,7 @@ export default function Header() {
             <Link href="/login" className="text-gray-700 hover:text-primary font-medium">
               Log in
             </Link>
-            <Link href="/signup" className="btn-secondary">
+            <Link href="/register" className="btn-secondary">
               Sign up
             </Link>
           </div>
@@ -93,7 +93,7 @@ export default function Header() {
               <Link href="/login" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">
                 Log in
               </Link>
-              <Link href="/signup" className="block px-3 py-2 mt-2 rounded-md text-base font-medium bg-secondary text-white hover:bg-secondary/90">
+              <Link href="/register" className="block px-3 py-2 mt-2 rounded-md text-base font-medium bg-secondary text-white hover:bg-secondary/90">
                 Sign up
               </Link>
             </div>

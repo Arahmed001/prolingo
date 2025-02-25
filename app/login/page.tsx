@@ -36,8 +36,8 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Redirect to dashboard on successful login
-      router.push('/dashboard');
+      // Redirect to profile on successful login
+      router.push('/profile');
     } catch (error) {
       console.error('Login error:', error);
       setError('Invalid credentials');
