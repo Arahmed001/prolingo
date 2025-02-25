@@ -3,11 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
+  --primary: 79, 70, 229;       /* Indigo */
+  --primary-light: 129, 140, 248; /* Light Indigo */
+  --secondary: 236, 72, 153;    /* Pink */
+  --accent: 249, 115, 22;       /* Orange */
+  --background: 255, 255, 255;  /* White */
+  --foreground: 15, 23, 42;     /* Slate 900 */
+  --muted: 241, 245, 249;       /* Slate 100 */
+  --muted-foreground: 100, 116, 139; /* Slate 400 */
+  --card: 255, 255, 255;        /* White */
+  --card-foreground: 15, 23, 42; /* Slate 900 */
+  --border: 226, 232, 240;      /* Slate 200 */
+  --input: 226, 232, 240;       /* Slate 200 */
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+@layer base {
+  body {
+    @apply antialiased;
+    color: rgb(var(--foreground));
+    background: rgb(var(--background));
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+}
+
+@layer components {
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-pink-600;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
+  }
+  
+  .card {
+    @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200;
+  }
+  
+  .section {
+    @apply py-16 px-4;
+  }
 } 

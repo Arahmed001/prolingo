@@ -2,9 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  experimental: {
-    appDir: true
-  }
+  // Make it extra clear we want the app directory structure
+  distDir: '.next'
 }
 
 module.exports = nextConfig
