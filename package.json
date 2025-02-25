@@ -7,19 +7,31 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node scripts/seed-lessons.js"
+    "seed": "node scripts/seed-lessons.js",
+    "generate-content": "node scripts/generate-ai-content.js",
+    "refresh-content": "node scripts/refresh-ai-content.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
     "firebase": "11.3.1",
     "next": "14.1.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "openai": "^4.28.0",
+    "langchain": "^0.1.9",
+    "elevenlabs-node": "^1.2.0",
+    "stability-client": "^1.9.0",
+    "redis": "^4.6.13",
+    "@sentry/nextjs": "^7.93.0",
+    "zod": "^3.22.4",
+    "node-cron": "^3.0.3",
+    "axios": "^1.6.5"
   },
   "devDependencies": {
     "@types/node": "20.11.19",
     "@types/react": "18.2.55",
     "@types/react-dom": "18.2.19",
+    "@types/node-cron": "^3.0.11",
     "autoprefixer": "10.4.17",
     "eslint": "8.56.0",
     "eslint-config-next": "14.1.0",
