@@ -1,7 +1,7 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getAnalytics } from 'firebase/analytics';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAnalytics, Analytics } from 'firebase/analytics';
 
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
@@ -18,10 +18,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase only if we're in the browser and have valid config
-let app;
-let auth;
-let db;
-let analytics;
+let app: FirebaseApp | undefined;
+let auth: Auth;
+let db: Firestore;
+let analytics: Analytics | undefined;
 
 // Only initialize Firebase if we're in the browser and have a valid API key
 if (isBrowser && firebaseConfig.apiKey) {
@@ -34,6 +34,10 @@ if (isBrowser && firebaseConfig.apiKey) {
     console.error('Firebase initialization error:', error);
   }
 } else {
+  // Create empty objects for server-side rendering
+  // This ensures the variables are always defined with the correct types
+  auth = {} as Auth;
+  db = {} as Firestore;
   console.warn('Firebase not initialized. Missing config or running on server.');
 }
 
