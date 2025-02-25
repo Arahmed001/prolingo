@@ -5,4 +5,5 @@ export interface Lesson {
   description: string;
   imageUrl: string;
   duration: string;
+  content?: string; // Optional content field for lesson material
 } 

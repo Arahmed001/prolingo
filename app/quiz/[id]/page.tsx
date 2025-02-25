@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import { getLessonById } from '../../../lib/services/lessonService';
 import { Lesson } from '../../../lib/types';
@@ -10,7 +9,7 @@ import { Lesson } from '../../../lib/types';
 // Prevent static prerendering
 export const dynamic = 'force-dynamic';
 
-export default function LessonPage({ params }: { params: { id: string } }) {
+export default function QuizPage({ params }: { params: { id: string } }) {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,7 +28,7 @@ export default function LessonPage({ params }: { params: { id: string } }) {
         setLoading(false);
       } catch (err) {
         console.error(`Error fetching lesson with ID ${id}:`, err);
-        setError('Failed to load lesson. Please try again later.');
+        setError('Failed to load quiz. Please try again later.');
         setLoading(false);
       }
     }
@@ -42,7 +41,7 @@ export default function LessonPage({ params }: { params: { id: string } }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl font-medium text-primary">Loading lesson...</div>
+        <div className="text-xl font-medium text-primary">Loading quiz...</div>
       </div>
     );
   }
@@ -50,7 +49,7 @@ export default function LessonPage({ params }: { params: { id: string } }) {
   if (error || !lesson) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <div className="text-xl font-medium text-red-500">{error || 'Lesson not found'}</div>
+        <div className="text-xl font-medium text-red-500">{error || 'Quiz not found'}</div>
         <button
           onClick={() => router.push('/lessons')}
           className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
@@ -66,80 +65,50 @@ export default function LessonPage({ params }: { params: { id: string } }) {
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <Link 
-            href="/lessons" 
+            href={`/lessons/${id}`} 
             className="text-primary hover:text-primary/80 flex items-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
             </svg>
-            Back to Lessons
+            Back to Lesson
           </Link>
         </div>
 
         <div className="bg-white rounded-xl overflow-hidden shadow-lg">
-          <div className="relative h-64 w-full">
-            {lesson.imageUrl ? (
-              <Image
-                src={lesson.imageUrl}
-                alt={lesson.title}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
-                <span className="text-primary">No image</span>
-              </div>
-            )}
-            <div className="absolute top-4 right-4 bg-primary text-white text-sm font-medium py-1 px-3 rounded-full">
-              {lesson.level}
-            </div>
-          </div>
-
           <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-3xl font-bold text-primary">{lesson.title}</h1>
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-3xl font-bold text-primary">Quiz: {lesson.title}</h1>
               <span className="text-sm font-medium text-secondary bg-secondary/10 py-1 px-3 rounded-full">
-                {lesson.duration}
+                {lesson.level}
               </span>
             </div>
 
-            <p className="text-lg text-muted-foreground mb-8">{lesson.description}</p>
-
-            <div className="border-t border-border pt-6">
-              <h2 className="text-xl font-semibold text-primary mb-4">Lesson Content</h2>
-              
-              {lesson.content ? (
-                <div 
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: lesson.content }}
-                />
-              ) : (
-                <div className="prose max-w-none">
-                  <p>No content available for this lesson yet.</p>
-                </div>
-              )}
+            {/* Placeholder for quiz content */}
+            <div className="prose max-w-none mb-8">
+              <p className="text-lg">This is a placeholder for the quiz on {lesson.title}. In a complete implementation, this would include:</p>
+              <ul>
+                <li>Multiple choice questions based on the lesson content</li>
+                <li>Fill-in-the-blank exercises</li>
+                <li>Matching activities</li>
+                <li>Speaking practice prompts</li>
+                <li>Listening comprehension questions</li>
+              </ul>
+              <p className="text-lg mt-4">The quiz would test the key vocabulary and concepts from the lesson.</p>
             </div>
 
             <div className="mt-8 flex justify-between">
               <button
                 className="px-4 py-2 bg-white border border-primary text-primary rounded-md hover:bg-primary/5 transition-colors"
-                onClick={() => router.push('/lessons')}
+                onClick={() => router.push(`/lessons/${id}`)}
               >
-                Back to Lessons
+                Back to Lesson
               </button>
-              <div className="flex gap-4">
-                <button
-                  className="px-4 py-2 bg-secondary text-white rounded-md hover:bg-secondary/90 transition-colors"
-                  onClick={() => router.push(`/quiz/${id}`)}
-                >
-                  Take Quiz
-                </button>
-                <button
-                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  Mark as Complete
-                </button>
-              </div>
+              <button
+                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Submit Quiz
+              </button>
             </div>
           </div>
         </div>
