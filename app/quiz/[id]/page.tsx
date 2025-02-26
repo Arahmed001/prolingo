@@ -4,571 +4,626 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLessonById } from '../../../lib/services/lessonService';
-import { getQuizByLessonId } from '../../../lib/services/quizService';
-import { Lesson, Quiz, QuizQuestion, MultipleChoiceQuestion, FillInBlankQuestion, MatchingQuestion } from '../../../lib/types';
+import { getQuizById } from '../../../lib/services/quizService';
+import { Lesson, Quiz, QuizQuestion } from '../../../lib/types';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
-// Prevent static prerendering
-export const dynamic = 'force-dynamic';
+// Define the match type for clarity
+interface Match {
+  term: string;
+  definition: string;
+}
 
-export default function QuizPage({ params }: { params: { id: string } }) {
+const QuizPage = ({ params }: { params: { id: string } }) => {
+  const router = useRouter();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const router = useRouter();
-  const { id } = params;
-
+  const [error, setError] = useState<string | null>(null);
+  
   // Quiz state
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [fillAnswers, setFillAnswers] = useState<string[]>([]);
-  const [matchAnswers, setMatchAnswers] = useState<{ [key: number]: number }[]>([]);
-  const [showResults, setShowResults] = useState(false);
+  const [matchAnswers, setMatchAnswers] = useState<Match[][]>([]);
+  const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
-  const [explanations, setExplanations] = useState<{ [key: number]: string }>({});
-
-  // Fallback quiz questions in case Firebase fetch fails
-  const fallbackQuizQuestions: QuizQuestion[] = [
-    {
-      id: 1,
-      type: 'multiple-choice',
-      question: "What is the correct greeting for meeting someone for the first time?",
-      options: ["Goodbye!", "Nice to meet you!", "See you later!", "What's up?"],
-      correctAnswer: 1
-    },
-    {
-      id: 2,
-      type: 'multiple-choice',
-      question: "Which phrase would you use to ask someone's name?",
-      options: ["How are you?", "Where are you from?", "What's your name?", "How old are you?"],
-      correctAnswer: 2
-    },
-    {
-      id: 3,
-      type: 'fill',
-      question: "Fill in the blank: 'Hello' _____ 'Hi' in English.",
-      answer: "means",
-      explanation: "The word 'means' is used to express that one word is equivalent to another."
-    },
-    {
-      id: 4,
-      type: 'fill',
-      question: "Complete the sentence: 'I _____ a student.'",
-      answer: "am",
-      explanation: "We use 'am' with the first person singular (I) form of the verb 'to be'."
-    },
-    {
-      id: 5,
-      type: 'match',
-      question: "Match the greetings with their meanings:",
-      pairs: [
-        { term: "Hello", definition: "Hi" },
-        { term: "Good morning", definition: "Morning greeting" },
-        { term: "Goodbye", definition: "Farewell" },
-        { term: "See you later", definition: "Informal goodbye" }
-      ]
-    }
-  ];
-
+  const [explanations, setExplanations] = useState<string[]>([]);
+  
+  // Fallback quiz for testing if Firebase fetch fails
+  const fallbackQuiz: Quiz = {
+    id: 'fallback-quiz',
+    lessonId: 'fallback-lesson',
+    title: 'Fallback Quiz',
+    description: 'This is a fallback quiz for testing',
+    questions: [
+      {
+        id: 1,
+        type: 'multiple-choice',
+        question: 'Which of the following is a greeting?',
+        options: ['Hello', 'Goodbye', 'Thank you', 'Sorry'],
+        correctAnswer: 0
+      },
+      {
+        id: 2,
+        type: 'fill',
+        question: '_____ means "Hello" in English.',
+        answer: 'Hi',
+        explanation: 'Hi is a casual greeting commonly used in English.'
+      },
+      {
+        id: 3,
+        type: 'match',
+        question: 'Match the greeting with its meaning:',
+        pairs: [
+          { term: 'Hello', definition: 'A common greeting' },
+          { term: 'Goodbye', definition: 'A farewell' },
+          { term: 'Thank you', definition: 'Expressing gratitude' },
+          { term: 'Sorry', definition: 'Apologizing' }
+        ]
+      }
+    ]
+  };
+  
   useEffect(() => {
-    async function fetchData() {
+    const fetchData = async () => {
       try {
-        // Fetch lesson data
-        const lessonData = await getLessonById(id);
-        if (lessonData) {
-          setLesson(lessonData);
-          
-          // Fetch quiz data for this lesson
-          const quizData = await getQuizByLessonId(id);
-          if (quizData) {
-            setQuiz(quizData);
-          } else {
-            console.warn(`No quiz found for lesson ID ${id}, using fallback quiz`);
-            // Create a fallback quiz if none exists in Firebase
-            setQuiz({
-              id: `fallback-${id}`,
-              lessonId: id,
-              title: lessonData.title,
-              description: `Quiz for ${lessonData.title}`,
-              questions: fallbackQuizQuestions
-            });
-          }
+        setLoading(true);
+        
+        // Fetch the quiz
+        const quizData = await getQuizById(params.id);
+        
+        if (!quizData) {
+          console.error('Quiz not found');
+          setError('Quiz not found');
+          setQuiz(fallbackQuiz); // Use fallback for testing
         } else {
-          setError('Lesson not found');
+          setQuiz(quizData);
+          
+          // Fetch the associated lesson
+          const lessonData = await getLessonById(quizData.lessonId);
+          setLesson(lessonData);
         }
-        setLoading(false);
       } catch (err) {
-        console.error(`Error fetching data for lesson ID ${id}:`, err);
-        setError('Failed to load quiz. Please try again later.');
+        console.error('Error fetching quiz:', err);
+        setError('Failed to load quiz');
+        setQuiz(fallbackQuiz); // Use fallback for testing
+      } finally {
         setLoading(false);
       }
-    }
-
-    if (id) {
-      fetchData();
-    }
-  }, [id]);
-
+    };
+    
+    fetchData();
+  }, [params.id]);
+  
+  // Initialize answer arrays when quiz loads
   useEffect(() => {
-    // Initialize answer arrays based on question types when quiz is loaded
     if (quiz) {
-      const questionCount = quiz.questions.length;
-      const initialSelectedAnswers = Array(questionCount).fill(-1);
-      const initialFillAnswers = Array(questionCount).fill('');
-      const initialMatchAnswers = Array(questionCount).fill({});
+      const initialSelectedAnswers = new Array(quiz.questions.length).fill(-1);
+      const initialFillAnswers = new Array(quiz.questions.length).fill('');
+      const initialMatchAnswers = new Array(quiz.questions.length).fill([]).map(() => []);
+      const initialExplanations = new Array(quiz.questions.length).fill('');
       
       setSelectedAnswers(initialSelectedAnswers);
       setFillAnswers(initialFillAnswers);
       setMatchAnswers(initialMatchAnswers);
-      setCurrentQuestion(0);
-      setShowResults(false);
-      setScore(0);
-      setExplanations({});
+      setExplanations(initialExplanations);
     }
   }, [quiz]);
-
-  // Handle multiple choice answer selection
-  const handleAnswerSelect = (answerIndex: number) => {
+  
+  // Handle multiple choice selection
+  const handleAnswerSelect = (questionIndex: number, optionIndex: number) => {
     const newSelectedAnswers = [...selectedAnswers];
-    newSelectedAnswers[currentQuestion] = answerIndex;
+    newSelectedAnswers[questionIndex] = optionIndex;
     setSelectedAnswers(newSelectedAnswers);
   };
-
-  // Handle fill-in-the-blank answer input
-  const handleFillAnswerChange = (answer: string) => {
+  
+  // Handle fill-in-the-blank input
+  const handleFillAnswer = (questionIndex: number, answer: string) => {
     const newFillAnswers = [...fillAnswers];
-    newFillAnswers[currentQuestion] = answer;
+    newFillAnswers[questionIndex] = answer;
     setFillAnswers(newFillAnswers);
   };
-
-  // Handle matching answer selection
-  const handleMatchAnswerSelect = (termIndex: number, definitionIndex: number) => {
+  
+  // Handle matching pairs
+  const handleMatchAnswer = (questionIndex: number, term: string, definition: string) => {
     const newMatchAnswers = [...matchAnswers];
-    const currentMatches = { ...newMatchAnswers[currentQuestion] };
     
-    // If this term is already matched to another definition, remove that match
-    Object.keys(currentMatches).forEach(key => {
-      if (currentMatches[Number(key)] === definitionIndex) {
-        delete currentMatches[Number(key)];
-      }
-    });
-    
-    // Add or update the match
-    currentMatches[termIndex] = definitionIndex;
-    newMatchAnswers[currentQuestion] = currentMatches;
-    setMatchAnswers(newMatchAnswers);
-  };
-
-  // Check if current question is answered
-  const isCurrentQuestionAnswered = () => {
-    if (!quiz || !quiz.questions[currentQuestion]) return false;
-    
-    const currentQ = quiz.questions[currentQuestion];
-    
-    if (currentQ.type === 'multiple-choice') {
-      return selectedAnswers[currentQuestion] !== -1;
-    } else if (currentQ.type === 'fill') {
-      return fillAnswers[currentQuestion]?.trim() !== '';
-    } else if (currentQ.type === 'match') {
-      const matches = matchAnswers[currentQuestion] || {};
-      // All terms must be matched
-      return Object.keys(matches).length === (currentQ as MatchingQuestion).pairs.length;
+    // Initialize the array for this question if it doesn't exist
+    if (!Array.isArray(newMatchAnswers[questionIndex])) {
+      newMatchAnswers[questionIndex] = [];
     }
     
-    return false;
+    // Check if this term already has a match
+    const existingMatchIndex = newMatchAnswers[questionIndex].findIndex(
+      (match: Match) => match.term === term
+    );
+    
+    if (existingMatchIndex !== -1) {
+      // Update existing match
+      newMatchAnswers[questionIndex][existingMatchIndex] = { term, definition };
+    } else {
+      // Add new match
+      newMatchAnswers[questionIndex].push({ term, definition });
+    }
+    
+    setMatchAnswers(newMatchAnswers);
   };
-
+  
+  // Check if current question is answered
+  const isCurrentQuestionAnswered = () => {
+    if (!quiz) return false;
+    
+    const currentQuestion = quiz.questions[currentQuestionIndex];
+    
+    switch (currentQuestion.type) {
+      case 'multiple-choice':
+        return selectedAnswers[currentQuestionIndex] !== -1;
+      case 'fill':
+        return fillAnswers[currentQuestionIndex]?.trim() !== '';
+      case 'match':
+        return Array.isArray(matchAnswers[currentQuestionIndex]) && 
+               matchAnswers[currentQuestionIndex].length === currentQuestion.pairs.length;
+      default:
+        return false;
+    }
+  };
+  
   // Handle quiz submission
   const handleSubmitQuiz = () => {
     if (!quiz) return;
     
-    let newScore = 0;
-    const newExplanations: { [key: number]: string } = {};
+    let totalScore = 0;
+    const newExplanations = [...explanations];
     
+    // Calculate score for each question
     quiz.questions.forEach((question, index) => {
-      if (question.type === 'multiple-choice') {
-        const mcQuestion = question as MultipleChoiceQuestion;
-        if (selectedAnswers[index] === mcQuestion.correctAnswer) {
-          newScore += 1;
-          newExplanations[index] = `Correct: ${mcQuestion.options[mcQuestion.correctAnswer]}`;
-        } else {
-          newExplanations[index] = `Incorrect. The correct answer is: ${mcQuestion.options[mcQuestion.correctAnswer]}`;
-        }
-      } 
-      else if (question.type === 'fill') {
-        const fillQuestion = question as FillInBlankQuestion;
-        const userAnswer = fillAnswers[index]?.trim().toLowerCase() || '';
-        const correctAnswer = fillQuestion.answer.toLowerCase();
-        
-        if (userAnswer === correctAnswer) {
-          newScore += 1;
-          newExplanations[index] = `Correct: "${correctAnswer}" is the right answer. ${fillQuestion.explanation || ''}`;
-        } else {
-          newExplanations[index] = `Incorrect. The correct answer is: "${correctAnswer}". ${fillQuestion.explanation || ''}`;
-        }
-      } 
-      else if (question.type === 'match') {
-        const matchQuestion = question as MatchingQuestion;
-        const userMatches = matchAnswers[index] || {};
-        let allCorrect = true;
-        
-        // Check if all matches are correct
-        for (let i = 0; i < matchQuestion.pairs.length; i++) {
-          if (userMatches[i] !== i) {
-            allCorrect = false;
-            break;
+      switch (question.type) {
+        case 'multiple-choice':
+          if (selectedAnswers[index] === question.correctAnswer) {
+            totalScore++;
+            newExplanations[index] = 'Correct!';
+          } else {
+            newExplanations[index] = `Incorrect. The correct answer is: ${question.options[question.correctAnswer]}`;
           }
-        }
-        
-        if (allCorrect) {
-          newScore += 1;
-          newExplanations[index] = "All matches are correct!";
-        } else {
-          let explanation = "Incorrect matches. The correct pairs are: ";
-          matchQuestion.pairs.forEach((pair, i) => {
-            explanation += `"${pair.term}" corresponds to "${pair.definition}"${i < matchQuestion.pairs.length - 1 ? ', ' : ''}`;
-          });
-          newExplanations[index] = explanation;
-        }
+          break;
+          
+        case 'fill':
+          // Case-insensitive comparison for fill-in-the-blank
+          if (fillAnswers[index]?.trim().toLowerCase() === question.answer.toLowerCase()) {
+            totalScore++;
+            newExplanations[index] = 'Correct!';
+          } else {
+            newExplanations[index] = `Incorrect. The correct answer is: ${question.answer}`;
+            if (question.explanation) {
+              newExplanations[index] += `. ${question.explanation}`;
+            }
+          }
+          break;
+          
+        case 'match':
+          let allCorrect = true;
+          const userMatches = matchAnswers[index] || [];
+          const correctPairs = question.pairs;
+          
+          // Check if all matches are correct
+          if (userMatches.length === correctPairs.length) {
+            for (const userMatch of userMatches) {
+              const correctPair = correctPairs.find(pair => pair.term === userMatch.term);
+              if (!correctPair || correctPair.definition !== userMatch.definition) {
+                allCorrect = false;
+                break;
+              }
+            }
+          } else {
+            allCorrect = false;
+          }
+          
+          if (allCorrect) {
+            totalScore++;
+            newExplanations[index] = 'Correct matches!';
+          } else {
+            const correctPairsText = correctPairs
+              .map(pair => `${pair.term} → ${pair.definition}`)
+              .join(', ');
+            newExplanations[index] = `Incorrect corresponds to. The correct pairs are: ${correctPairsText}`;
+          }
+          break;
       }
     });
     
-    setScore(newScore);
+    setScore(totalScore);
     setExplanations(newExplanations);
-    setShowResults(true);
+    setQuizCompleted(true);
   };
-
+  
   // Handle next question
   const handleNextQuestion = () => {
     if (!quiz) return;
     
-    if (currentQuestion < quiz.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
+    if (currentQuestionIndex < quiz.questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       handleSubmitQuiz();
     }
   };
-
-  // Handle restart quiz
+  
+  // Handle quiz restart
   const handleRestartQuiz = () => {
-    if (!quiz) return;
-    
-    setCurrentQuestion(0);
-    
-    // Reset all answer types
-    const initialSelectedAnswers = Array(quiz.questions.length).fill(-1);
-    const initialFillAnswers = Array(quiz.questions.length).fill('');
-    const initialMatchAnswers = Array(quiz.questions.length).fill({});
-    
-    setSelectedAnswers(initialSelectedAnswers);
-    setFillAnswers(initialFillAnswers);
-    setMatchAnswers(initialMatchAnswers);
-    
-    setShowResults(false);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers(new Array(quiz?.questions.length || 0).fill(-1));
+    setFillAnswers(new Array(quiz?.questions.length || 0).fill(''));
+    setMatchAnswers(new Array(quiz?.questions.length || 0).fill([]).map(() => []));
+    setExplanations(new Array(quiz?.questions.length || 0).fill(''));
+    setQuizCompleted(false);
     setScore(0);
-    setExplanations({});
   };
-
+  
+  // Remove a match
+  const handleRemoveMatch = (questionIndex: number, termToRemove: string) => {
+    const newMatchAnswers = [...matchAnswers];
+    
+    if (Array.isArray(newMatchAnswers[questionIndex])) {
+      newMatchAnswers[questionIndex] = newMatchAnswers[questionIndex].filter(
+        (match: Match) => match.term !== termToRemove
+      );
+      setMatchAnswers(newMatchAnswers);
+    }
+  };
+  
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl font-medium text-primary">Loading quiz...</div>
-      </div>
-    );
-  }
-
-  if (error || !lesson || !quiz) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <div className="text-xl font-medium text-red-500">{error || 'Quiz not found'}</div>
-        <button
-          onClick={() => router.push('/lessons')}
-          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-        >
-          Back to Lessons
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-blue-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Link 
-            href={`/lessons/${id}`} 
-            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Back to Lesson
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-blue-100">
-          <div className="bg-blue-600 text-white p-6">
-            <h1 className="text-2xl font-bold">Quiz: {lesson.title}</h1>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-sm font-medium bg-blue-500 py-1 px-3 rounded-full">
-                {lesson.level}
-              </span>
-              <span className="text-sm">Test your knowledge</span>
-            </div>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-lg">Loading quiz...</p>
           </div>
-
-          <div className="p-8">
-            {/* Progress bar */}
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-blue-600">
-                  Question {showResults ? quiz.questions.length : currentQuestion + 1} of {quiz.questions.length}
-                </span>
-                <span className="text-sm font-medium text-blue-600">
-                  {showResults ? '100' : Math.round(((currentQuestion + 1) / quiz.questions.length) * 100)}% Complete
-                </span>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+  
+  if (error || !quiz) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
+            <p className="text-lg">{error || 'Failed to load quiz'}</p>
+            <Link href="/lessons" className="mt-6 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Back to Lessons
+            </Link>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+  
+  const currentQuestion = quiz.questions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
+  
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      
+      <main className="flex-grow container mx-auto px-4 py-8">
+        {!quizCompleted ? (
+          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <div className="mb-6">
+              <Link href={`/lessons/${quiz.lessonId}`} className="text-blue-600 hover:underline flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Lesson
+              </Link>
+            </div>
+            
+            <h1 className="text-2xl font-bold mb-4">{quiz.title}</h1>
+            
+            <div className="mb-6">
+              <div className="flex justify-between text-sm text-gray-600 mb-1">
+                <span>Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
+                <span>{Math.round(progress)}% Complete</span>
               </div>
-              <div className="w-full bg-blue-100 rounded-full h-2.5">
-                <div 
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-                  style={{ width: showResults ? '100%' : `${((currentQuestion + 1) / quiz.questions.length) * 100}%` }}
-                ></div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
               </div>
             </div>
-
-            {!showResults ? (
-              /* Quiz questions */
-              <div className="bg-white rounded-lg p-6 border border-blue-100 shadow-sm">
-                <h2 className="text-xl font-semibold text-blue-800 mb-4">
-                  {quiz.questions[currentQuestion].question}
-                </h2>
-                
-                {/* Multiple Choice Question */}
-                {quiz.questions[currentQuestion].type === 'multiple-choice' && (
-                  <div className="space-y-3 mt-6">
-                    {(quiz.questions[currentQuestion] as MultipleChoiceQuestion).options.map((option, index) => (
-                      <div 
-                        key={index}
-                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
-                          selectedAnswers[currentQuestion] === index 
-                            ? 'border-blue-500 bg-blue-50' 
-                            : 'border-gray-200 hover:border-blue-300'
-                        }`}
-                        onClick={() => handleAnswerSelect(index)}
-                      >
+            
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">{currentQuestion.question}</h2>
+              
+              {/* Multiple Choice Question */}
+              {currentQuestion.type === 'multiple-choice' && (
+                <div className="space-y-3">
+                  {currentQuestion.options.map((option, optionIndex) => (
+                    <div 
+                      key={optionIndex}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedAnswers[currentQuestionIndex] === optionIndex
+                          ? 'bg-blue-100 border-blue-500'
+                          : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => handleAnswerSelect(currentQuestionIndex, optionIndex)}
+                    >
+                      <div className="flex items-center">
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-3 ${
-                          selectedAnswers[currentQuestion] === index 
-                            ? 'border-blue-500' 
-                            : 'border-gray-300'
+                          selectedAnswers[currentQuestionIndex] === optionIndex
+                            ? 'border-blue-500 bg-blue-500'
+                            : 'border-gray-400'
                         }`}>
-                          {selectedAnswers[currentQuestion] === index && (
-                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                          {selectedAnswers[currentQuestionIndex] === optionIndex && (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
                           )}
                         </div>
-                        <span className="text-gray-700">{option}</span>
+                        <span>{option}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Fill in the Blank Question */}
-                {quiz.questions[currentQuestion].type === 'fill' && (
-                  <div className="mt-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      <input
-                        type="text"
-                        value={fillAnswers[currentQuestion] || ''}
-                        onChange={(e) => handleFillAnswerChange(e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Type your answer here..."
-                      />
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Fill in the blank with the correct word or phrase.
-                    </p>
-                  </div>
-                )}
-                
-                {/* Matching Question */}
-                {quiz.questions[currentQuestion].type === 'match' && (
-                  <div className="mt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <h3 className="font-medium text-blue-800">Terms</h3>
-                        {(quiz.questions[currentQuestion] as MatchingQuestion).pairs.map((pair, termIndex) => (
-                          <div key={termIndex} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            {pair.term}
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <h3 className="font-medium text-blue-800">Definitions</h3>
-                        {(quiz.questions[currentQuestion] as MatchingQuestion).pairs.map((pair, defIndex) => {
-                          const currentMatches = matchAnswers[currentQuestion] || {};
-                          const isMatched = Object.values(currentMatches).includes(defIndex);
-                          const matchedTermIndex = Object.keys(currentMatches).find(
-                            key => currentMatches[Number(key)] === defIndex
-                          );
-                          
-                          return (
-                            <div 
-                              key={defIndex} 
-                              className={`p-3 rounded-lg border cursor-pointer ${
-                                isMatched 
-                                  ? 'bg-green-50 border-green-200' 
-                                  : 'bg-white border-gray-200 hover:border-blue-300'
-                              }`}
-                            >
-                              <div className="flex justify-between items-center">
-                                <span>{pair.definition}</span>
-                                {isMatched && matchedTermIndex !== undefined && (
-                                  <span className="text-sm font-medium text-green-600">
-                                    Matched with: {(quiz.questions[currentQuestion] as MatchingQuestion).pairs[Number(matchedTermIndex)].term}
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {!isMatched && (
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {(quiz.questions[currentQuestion] as MatchingQuestion).pairs.map((_, termIdx) => {
-                                    // Skip if this term is already matched
-                                    if (currentMatches[termIdx] !== undefined) return null;
-                                    
-                                    return (
-                                      <button
-                                        key={termIdx}
-                                        className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
-                                        onClick={() => handleMatchAnswerSelect(termIdx, defIndex)}
-                                      >
-                                        Match with {(quiz.questions[currentQuestion] as MatchingQuestion).pairs[termIdx].term}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-4">
-                      Match each term with its correct definition.
-                    </p>
-                  </div>
-                )}
-                
-                <div className="mt-8 flex justify-between">
-                  <button
-                    className="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
-                    onClick={() => router.push(`/lessons/${id}`)}
-                  >
-                    Exit Quiz
-                  </button>
-                  <button
-                    className={`px-6 py-2 bg-blue-600 text-white rounded-md transition-colors ${
-                      !isCurrentQuestionAnswered() 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:bg-blue-700'
-                    }`}
-                    onClick={handleNextQuestion}
-                    disabled={!isCurrentQuestionAnswered()}
-                  >
-                    {currentQuestion < quiz.questions.length - 1 ? 'Next Question' : 'Submit Quiz'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Results section */
-              <div className="bg-white rounded-lg p-6 border border-blue-100 shadow-sm">
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
-                    <span className="text-2xl font-bold text-blue-600">{score}/{quiz.questions.length}</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-blue-800">
-                    {score === quiz.questions.length 
-                      ? 'Perfect Score!' 
-                      : score >= quiz.questions.length / 2 
-                        ? 'Good Job!' 
-                        : 'Keep Practicing!'}
-                  </h2>
-                  <p className="text-gray-600 mt-2">
-                    You answered {score} out of {quiz.questions.length} questions correctly.
-                  </p>
-                </div>
-
-                <div className="space-y-4 mt-8">
-                  <h3 className="font-semibold text-blue-800">Question Review:</h3>
-                  {quiz.questions.map((question, index) => (
-                    <div key={index} className="p-4 rounded-lg border border-gray-200">
-                      <p className="font-medium text-gray-800">{question.question}</p>
-                      
-                      {/* Display user's answer based on question type */}
-                      <div className="mt-2">
-                        <span className="text-sm font-medium mr-2">Your answer:</span>
-                        {question.type === 'multiple-choice' && (
-                          <span className={`text-sm ${
-                            selectedAnswers[index] === (question as MultipleChoiceQuestion).correctAnswer
-                              ? 'text-green-600' 
-                              : 'text-red-600'
-                          }`}>
-                            {selectedAnswers[index] === -1
-                              ? 'Not answered' 
-                              : (question as MultipleChoiceQuestion).options[selectedAnswers[index]]}
-                          </span>
-                        )}
-                        
-                        {question.type === 'fill' && (
-                          <span className={`text-sm ${
-                            fillAnswers[index]?.toLowerCase().trim() === (question as FillInBlankQuestion).answer.toLowerCase()
-                              ? 'text-green-600' 
-                              : 'text-red-600'
-                          }`}>
-                            {!fillAnswers[index] ? 'Not answered' : fillAnswers[index]}
-                          </span>
-                        )}
-                        
-                        {question.type === 'match' && (
-                          <div className="text-sm">
-                            {Object.keys(matchAnswers[index] || {}).length === 0 
-                              ? <span className="text-red-600">Not answered</span>
-                              : Object.keys(matchAnswers[index] || {}).length === (question as MatchingQuestion).pairs.length
-                                ? <span className="text-green-600">All pairs matched</span>
-                                : <span className="text-red-600">Incomplete matches</span>
-                            }
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Display explanation */}
-                      {explanations[index] && (
-                        <div className="mt-2 text-sm bg-blue-50 p-2 rounded">
-                          {explanations[index]}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
-
-                <div className="mt-8 flex justify-between">
-                  <button
-                    className="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
-                    onClick={() => router.push(`/lessons/${id}`)}
-                  >
-                    Back to Lesson
-                  </button>
-                  <button
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    onClick={handleRestartQuiz}
-                  >
-                    Retry Quiz
-                  </button>
+              )}
+              
+              {/* Fill in the Blank Question */}
+              {currentQuestion.type === 'fill' && (
+                <div className="space-y-4">
+                  <p className="text-gray-700 mb-2">
+                    Fill in the blank with the correct answer:
+                  </p>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={fillAnswers[currentQuestionIndex] || ''}
+                      onChange={(e) => handleFillAnswer(currentQuestionIndex, e.target.value)}
+                      placeholder="Type your answer here"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+              
+              {/* Matching Question */}
+              {currentQuestion.type === 'match' && (
+                <div className="space-y-6">
+                  <p className="text-gray-700 mb-2">
+                    Match each term with its correct definition by selecting from the dropdown:
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Left column: Terms */}
+                    <div className="space-y-3">
+                      <h3 className="font-medium text-gray-700">Terms</h3>
+                      {currentQuestion.pairs.map((pair, pairIndex) => {
+                        const currentMatch = matchAnswers[currentQuestionIndex]?.find(
+                          (match: Match) => match.term === pair.term
+                        );
+                        
+                        return (
+                          <div key={pairIndex} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <span className="font-medium">{pair.term}</span>
+                            {currentMatch && (
+                              <div className="ml-auto flex items-center text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                                <span className="mr-2">{currentMatch.definition}</span>
+                                <button 
+                                  onClick={() => handleRemoveMatch(currentQuestionIndex, pair.term)}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Right column: Definitions to select */}
+                    <div className="space-y-3">
+                      <h3 className="font-medium text-gray-700">Definitions</h3>
+                      {currentQuestion.pairs.map((pair, pairIndex) => {
+                        // Check if this definition is already matched
+                        const isMatched = matchAnswers[currentQuestionIndex]?.some(
+                          (match: Match) => match.definition === pair.definition
+                        );
+                        
+                        if (isMatched) return null;
+                        
+                        return (
+                          <div 
+                            key={pairIndex} 
+                            className="p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
+                          >
+                            <div className="flex justify-between items-center">
+                              <span>{pair.definition}</span>
+                              <div className="space-x-2">
+                                {currentQuestion.pairs.map((termPair, termIndex) => {
+                                  // Check if this term is already matched
+                                  const isTermMatched = matchAnswers[currentQuestionIndex]?.some(
+                                    (match: Match) => match.term === termPair.term
+                                  );
+                                  
+                                  if (isTermMatched) return null;
+                                  
+                                  return (
+                                    <button
+                                      key={termIndex}
+                                      onClick={() => handleMatchAnswer(currentQuestionIndex, termPair.term, pair.definition)}
+                                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                    >
+                                      {termPair.term}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-between">
+              <button
+                onClick={() => router.push(`/lessons/${quiz.lessonId}`)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Exit Quiz
+              </button>
+              
+              <button
+                onClick={handleNextQuestion}
+                disabled={!isCurrentQuestionAnswered()}
+                className={`px-6 py-2 rounded-lg transition-colors ${
+                  isCurrentQuestionAnswered()
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {currentQuestionIndex < quiz.questions.length - 1 ? 'Next Question' : 'Submit Quiz'}
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
+        ) : (
+          // Quiz Results
+          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <h1 className="text-2xl font-bold mb-4">Quiz Results</h1>
+            
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-lg font-medium">Your Score:</span>
+                <span className="text-xl font-bold">{score} / {quiz.questions.length}</span>
+              </div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                <div 
+                  className={`h-2.5 rounded-full ${
+                    (score / quiz.questions.length) >= 0.7 
+                      ? 'bg-green-600' 
+                      : (score / quiz.questions.length) >= 0.4 
+                        ? 'bg-yellow-500' 
+                        : 'bg-red-500'
+                  }`} 
+                  style={{ width: `${(score / quiz.questions.length) * 100}%` }}
+                ></div>
+              </div>
+              
+              <p className="text-center mt-2">
+                {(score / quiz.questions.length) >= 0.8 
+                  ? 'Excellent work! You have a great understanding of this material.'
+                  : (score / quiz.questions.length) >= 0.6 
+                    ? 'Good job! You\'re making good progress.'
+                    : 'Keep practicing! Review the lesson material and try again.'}
+              </p>
+            </div>
+            
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">Review</h2>
+              
+              <div className="space-y-6">
+                {quiz.questions.map((question, questionIndex) => (
+                  <div key={questionIndex} className="p-4 border rounded-lg">
+                    <h3 className="font-medium mb-2">
+                      Question {questionIndex + 1}: {question.question}
+                    </h3>
+                    
+                    {/* Multiple Choice Review */}
+                    {question.type === 'multiple-choice' && (
+                      <div>
+                        <p className="mb-2">
+                          Your answer: {selectedAnswers[questionIndex] !== -1 
+                            ? question.options[selectedAnswers[questionIndex]] 
+                            : 'Not answered'}
+                        </p>
+                        <p className="mb-2">
+                          Correct answer: {question.options[question.correctAnswer]}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Fill in the Blank Review */}
+                    {question.type === 'fill' && (
+                      <div>
+                        <p className="mb-2">
+                          Your answer: {fillAnswers[questionIndex] || 'Not answered'}
+                        </p>
+                        <p className="mb-2">
+                          Correct answer: {question.answer}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Matching Review */}
+                    {question.type === 'match' && (
+                      <div>
+                        <p className="mb-2">Your matches:</p>
+                        <ul className="list-disc list-inside mb-2">
+                          {matchAnswers[questionIndex]?.map((match, matchIndex) => (
+                            <li key={matchIndex}>
+                              {match.term} → {match.definition}
+                            </li>
+                          )) || <li>No matches provided</li>}
+                        </ul>
+                        
+                        <p className="mb-2">Correct matches:</p>
+                        <ul className="list-disc list-inside">
+                          {question.pairs.map((pair, pairIndex) => (
+                            <li key={pairIndex}>
+                              {pair.term} → {pair.definition}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <div className={`mt-3 p-3 rounded-lg ${
+                      explanations[questionIndex]?.startsWith('Correct') 
+                        ? 'bg-green-50 text-green-800' 
+                        : 'bg-red-50 text-red-800'
+                    }`}>
+                      {explanations[questionIndex]}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex justify-between">
+              <button
+                onClick={() => router.push(`/lessons/${quiz.lessonId}`)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Back to Lesson
+              </button>
+              
+              <button
+                onClick={handleRestartQuiz}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Retry Quiz
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+      
+      <Footer />
     </div>
   );
-} 
+};
+
+export default QuizPage; 

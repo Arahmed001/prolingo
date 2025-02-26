@@ -1,12 +1,29 @@
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Quiz, QuizQuestion } from '../types';
+import { sampleQuizzes } from '../scripts/sampleQuizzes';
 
 // Fetch all quizzes
 export async function getQuizzes(): Promise<Quiz[]> {
   try {
     const quizzesCollection = collection(db, 'quizzes');
     const quizSnapshot = await getDocs(quizzesCollection);
+    
+    // If no quizzes exist, add sample quizzes
+    if (quizSnapshot.empty) {
+      await addSampleQuizzesToFirestore();
+      // Fetch again after adding samples
+      const newSnapshot = await getDocs(quizzesCollection);
+      const quizList = newSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data
+        } as Quiz;
+      });
+      return quizList;
+    }
+    
     const quizList = quizSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -74,6 +91,25 @@ export async function saveQuiz(quiz: Quiz): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('Error saving quiz:', error);
+    return false;
+  }
+}
+
+// Add sample quizzes to Firestore if none exist
+async function addSampleQuizzesToFirestore(): Promise<boolean> {
+  try {
+    console.log('Adding sample quizzes to Firestore...');
+    
+    for (const quiz of sampleQuizzes) {
+      const quizRef = doc(db, 'quizzes', quiz.id);
+      await setDoc(quizRef, quiz);
+      console.log(`Added sample quiz: ${quiz.title}`);
+    }
+    
+    console.log('Sample quizzes added successfully!');
+    return true;
+  } catch (error) {
+    console.error('Error adding sample quizzes:', error);
     return false;
   }
 } 

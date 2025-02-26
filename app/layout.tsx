@@ -1,9 +1,14 @@
+'use client';
+
 import './globals.css'
 import type { Metadata } from 'next'
 import { Poppins, Open_Sans } from "next/font/google"
 import Footer from './components/Footer'
 import Header from './components/Header'
 import AccessibilityProvider from './components/AccessibilityProvider'
+import { useEffect } from 'react'
+import { isFirebaseInitialized } from '../lib/firebase'
+import { addSampleQuizzes } from '../lib/scripts/sampleQuizzes'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -29,6 +34,23 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Initialize sample data when the app starts
+  useEffect(() => {
+    const initializeData = async () => {
+      // Wait for Firebase to initialize
+      if (isFirebaseInitialized()) {
+        try {
+          // Add sample quizzes if none exist
+          await addSampleQuizzes()
+        } catch (error) {
+          console.error('Error initializing sample data:', error)
+        }
+      }
+    }
+
+    initializeData()
+  }, [])
+
   return (
     <html lang="en" className={`${poppins.variable} ${openSans.variable}`}>
       <body className={openSans.className}>
