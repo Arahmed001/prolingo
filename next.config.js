@@ -4,18 +4,10 @@ const nextConfig = {
   swcMinify: true,
   // Make it extra clear we want the app directory structure
   distDir: '.next',
-  // Configure which pages should not be statically generated
-  experimental: {
-    // This ensures pages with dynamic data are rendered at runtime
-    // and not during build time
-    appDir: true,
-  },
-  // Disable static optimization for specific pages
-  unstable_runtimeJS: true,
   // Configure environment variables for the build
   env: {
     // Add a flag to detect build time vs runtime
-    NEXT_PUBLIC_IS_BUILD_TIME: process.env.NODE_ENV === 'production',
+    NEXT_PUBLIC_IS_BUILD_TIME: process.env.NODE_ENV === 'production' ? 'true' : 'false',
   },
   // Explicitly tell Next.js which pages should be generated at runtime
   // and not during the build process
