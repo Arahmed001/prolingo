@@ -136,7 +136,7 @@ export default function ProfilePage() {
   if (!isClient) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl font-medium text-primary">Loading...</div>
+        <div className="text-base sm:text-lg md:text-xl font-medium text-primary">Loading...</div>
       </div>
     );
   }
@@ -144,7 +144,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl font-medium text-primary">Loading...</div>
+        <div className="text-base sm:text-lg md:text-xl font-medium text-primary">Loading...</div>
       </div>
     );
   }
@@ -153,40 +153,40 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl font-medium text-primary">Redirecting to login...</div>
+        <div className="text-base sm:text-lg md:text-xl font-medium text-primary">Redirecting to login...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-muted py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white shadow-md rounded-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-primary px-6 py-8 text-white">
-            <h1 className="text-3xl font-bold">User Profile</h1>
-            <p className="mt-2 text-white/80">View and manage your account information</p>
+          <div className="bg-primary px-4 sm:px-6 py-6 sm:py-8 text-white">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">User Profile</h1>
+            <p className="mt-2 text-sm sm:text-base text-white/80">View and manage your account information</p>
           </div>
 
           {/* Profile Content */}
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               {/* User Info */}
-              <div className="md:col-span-2 space-y-6">
-                <div className="bg-white border border-border rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold mb-4 text-primary">Account Information</h2>
-                  <div className="space-y-4">
+              <div className="md:col-span-2 space-y-4 sm:space-y-6">
+                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Account Information</h2>
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
-                      <div className="text-lg font-medium">{user.email}</div>
+                      <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">Email</label>
+                      <div className="text-base sm:text-lg font-medium">{user.email}</div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Account ID</label>
-                      <div className="text-sm text-muted-foreground">{user.uid}</div>
+                      <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">Account ID</label>
+                      <div className="text-xs sm:text-sm text-muted-foreground">{user.uid}</div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">Account Created</label>
-                      <div className="text-sm text-muted-foreground">
+                      <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">Account Created</label>
+                      <div className="text-xs sm:text-sm text-muted-foreground">
                         {user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}
                       </div>
                     </div>
@@ -194,101 +194,101 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Progress Section */}
-                <div className="bg-white border border-border rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold mb-4 text-primary">Your Progress</h2>
+                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Your Progress</h2>
                   
                   {/* A1 Progress Bar */}
-                  <div className="mb-6">
+                  <div className="mb-4 sm:mb-6">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-muted-foreground">A1 Progress</span>
-                      <span className="text-sm font-medium">{progressPercentage}%</span>
+                      <span className="text-xs sm:text-sm font-medium text-muted-foreground">A1 Progress</span>
+                      <span className="text-xs sm:text-sm font-medium">{progressPercentage}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
                       <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
+                        className="bg-blue-600 h-2 sm:h-2.5 rounded-full" 
                         style={{ width: `${progressPercentage}%` }}
                       ></div>
                     </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="mt-1 sm:mt-2 text-xs text-muted-foreground">
                       {completedLessons} of {totalLessons} lessons completed
                     </div>
                   </div>
                   
                   {/* Learning Goal */}
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium text-primary mb-3">Your Learning Goal</h3>
-                    <form onSubmit={handleGoalSubmit} className="space-y-3">
+                  <div className="mt-4 sm:mt-6">
+                    <h3 className="text-base sm:text-lg font-medium text-primary mb-2 sm:mb-3">Your Learning Goal</h3>
+                    <form onSubmit={handleGoalSubmit} className="space-y-2 sm:space-y-3">
                       <input
                         type="text"
                         value={userGoal}
                         onChange={(e) => setUserGoal(e.target.value)}
                         placeholder="e.g., Reach A2 by June"
-                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
                       />
                       <button
                         type="submit"
                         disabled={isSavingGoal}
-                        className="w-full py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        className="w-full py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                       >
                         {isSavingGoal ? 'Saving...' : 'Save Goal'}
                       </button>
                       {goalSaved && (
-                        <div className="text-sm text-green-600">Goal saved successfully!</div>
+                        <div className="text-xs sm:text-sm text-green-600">Goal saved successfully!</div>
                       )}
                     </form>
                   </div>
                 </div>
 
                 {/* Achievements Section */}
-                <div className="bg-white border border-border rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold mb-4 text-primary">Your Achievements</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Your Achievements</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     {/* First Lesson Badge */}
-                    <div className={`border rounded-lg p-4 text-center ${completedLessons > 0 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
-                      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className={`border rounded-lg p-3 sm:p-4 text-center ${completedLessons > 0 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
-                      <h3 className="font-medium">First Lesson</h3>
+                      <h3 className="text-sm sm:text-base font-medium">First Lesson</h3>
                       <p className="text-xs text-muted-foreground mt-1">Completed your first lesson</p>
                     </div>
                     
                     {/* 5 Quizzes Badge */}
-                    <div className={`border rounded-lg p-4 text-center ${completedLessons >= 5 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
-                      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className={`border rounded-lg p-3 sm:p-4 text-center ${completedLessons >= 5 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                       </div>
-                      <h3 className="font-medium">5 Quizzes</h3>
+                      <h3 className="text-sm sm:text-base font-medium">5 Quizzes</h3>
                       <p className="text-xs text-muted-foreground mt-1">Completed 5 quizzes</p>
                     </div>
                     
                     {/* A1 Star Badge */}
-                    <div className={`border rounded-lg p-4 text-center ${progressPercentage >= 100 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
-                      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className={`border rounded-lg p-3 sm:p-4 text-center ${progressPercentage >= 100 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                         </svg>
                       </div>
-                      <h3 className="font-medium">A1 Star</h3>
+                      <h3 className="text-sm sm:text-base font-medium">A1 Star</h3>
                       <p className="text-xs text-muted-foreground mt-1">Completed A1 level</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white border border-border rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold mb-4 text-primary">Account Actions</h2>
-                  <div className="space-y-4">
+                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Account Actions</h2>
+                  <div className="space-y-3 sm:space-y-4">
                     <button 
-                      className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
+                      className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-xs sm:text-sm font-medium text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
                       onClick={() => router.push('/change-password')}
                     >
                       Change Password
                     </button>
                     <button 
-                      className="w-full py-2 px-4 border border-border rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      className="w-full py-2 px-4 border border-border rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                       onClick={() => auth.signOut().then(() => router.push('/login'))}
                     >
                       Sign Out
@@ -298,34 +298,34 @@ export default function ProfilePage() {
               </div>
 
               {/* Stats */}
-              <div className="space-y-6">
-                <div className="bg-white border border-border rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold mb-4 text-primary">Your Stats</h2>
-                  <div className="space-y-4">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Your Stats</h2>
+                  <div className="space-y-3 sm:space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Lessons Completed</span>
-                      <span className="text-xl font-bold text-primary">{completedLessons}</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Lessons Completed</span>
+                      <span className="text-lg sm:text-xl font-bold text-primary">{completedLessons}</span>
                     </div>
-                    <div className="border-t border-border pt-4 flex justify-between items-center">
-                      <span className="text-muted-foreground">Quizzes Taken</span>
-                      <span className="text-xl font-bold text-primary">{Math.floor(completedLessons * 0.7)}</span>
+                    <div className="border-t border-border pt-3 sm:pt-4 flex justify-between items-center">
+                      <span className="text-xs sm:text-sm text-muted-foreground">Quizzes Taken</span>
+                      <span className="text-lg sm:text-xl font-bold text-primary">{Math.floor(completedLessons * 0.7)}</span>
                     </div>
-                    <div className="border-t border-border pt-4 flex justify-between items-center">
-                      <span className="text-muted-foreground">Average Score</span>
-                      <span className="text-xl font-bold text-accent">85%</span>
+                    <div className="border-t border-border pt-3 sm:pt-4 flex justify-between items-center">
+                      <span className="text-xs sm:text-sm text-muted-foreground">Average Score</span>
+                      <span className="text-lg sm:text-xl font-bold text-accent">85%</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white border border-border rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold mb-4 text-primary">Subscription</h2>
-                  <div className="p-4 bg-primary/10 rounded-lg">
-                    <div className="font-medium text-primary">Free Plan</div>
-                    <div className="text-sm text-muted-foreground mt-1">Basic access to ESL teaching tools</div>
+                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Subscription</h2>
+                  <div className="p-3 sm:p-4 bg-primary/10 rounded-lg">
+                    <div className="text-sm sm:text-base font-medium text-primary">Free Plan</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground mt-1">Basic access to ESL teaching tools</div>
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-3 sm:mt-4">
                     <button 
-                      className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-xs sm:text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                       onClick={() => router.push('/subscription')}
                     >
                       Upgrade Plan
