@@ -9,6 +9,7 @@ import AccessibilityProvider from './components/AccessibilityProvider'
 import { useEffect } from 'react'
 import { isFirebaseInitialized } from '../lib/firebase'
 import { addSampleQuizzes } from '../lib/scripts/sampleQuizzes'
+import { addSampleThreads } from '../lib/scripts/sampleThreads'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -42,6 +43,8 @@ export default function RootLayout({
         try {
           // Add sample quizzes if none exist
           await addSampleQuizzes()
+          // Add sample threads if none exist
+          await addSampleThreads()
         } catch (error) {
           console.error('Error initializing sample data:', error)
         }
