@@ -10,6 +10,7 @@ import { collection, getDocs, getDoc, doc, addDoc, serverTimestamp, query, where
 import { db, isFirebaseInitialized } from '../../../lib/firebase';
 import Header from '../../../app/components/Header';
 import Footer from '../../../app/components/Footer';
+import FirebaseGuard from '../../../app/components/FirebaseGuard';
 
 interface Student {
   id: string;
@@ -31,6 +32,27 @@ interface Assignment {
 }
 
 export default function TeacherDashboard() {
+  return (
+    <FirebaseGuard
+      fallback={
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main className="flex-grow bg-gray-50 py-8 flex items-center justify-center">
+            <div className="text-center p-6 max-w-sm mx-auto">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Teacher Dashboard</h2>
+              <p className="text-gray-600">Please wait while we set up your dashboard...</p>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      }
+    >
+      <TeacherDashboardContent />
+    </FirebaseGuard>
+  );
+}
+
+function TeacherDashboardContent() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,11 +67,6 @@ export default function TeacherDashboard() {
 
   // Check if user is logged in and is a teacher
   useEffect(() => {
-    // Skip if Firebase is not initialized (server-side)
-    if (!isFirebaseInitialized()) {
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser({
@@ -81,10 +98,7 @@ export default function TeacherDashboard() {
 
   // Fetch students and their progress
   useEffect(() => {
-    // Skip if Firebase is not initialized (server-side) or user is not a teacher
-    if (!isFirebaseInitialized() || !isTeacher) {
-      return;
-    }
+    if (!isTeacher) return;
     
     const fetchStudents = async () => {
       try {

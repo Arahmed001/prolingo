@@ -10,6 +10,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db, isFirebaseInitialized } from '../../lib/firebase';
 import Header from '../../app/components/Header';
 import Footer from '../../app/components/Footer';
+import FirebaseGuard from '../../app/components/FirebaseGuard';
 
 interface Thread {
   id: string;
@@ -21,6 +22,27 @@ interface Thread {
 }
 
 export default function CommunityPage() {
+  return (
+    <FirebaseGuard
+      fallback={
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main className="flex-grow bg-gray-50 py-8 flex items-center justify-center">
+            <div className="text-center p-6 max-w-sm mx-auto">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Community Forum</h2>
+              <p className="text-gray-600">Please wait while we set up the forum...</p>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      }
+    >
+      <CommunityContent />
+    </FirebaseGuard>
+  );
+}
+
+function CommunityContent() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [newThreadTitle, setNewThreadTitle] = useState('');
   const [loading, setLoading] = useState(true);
@@ -31,11 +53,6 @@ export default function CommunityPage() {
 
   // Check if user is logged in
   useEffect(() => {
-    // Skip if Firebase is not initialized (server-side)
-    if (!isFirebaseInitialized()) {
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser({
@@ -52,12 +69,6 @@ export default function CommunityPage() {
 
   // Fetch threads from Firestore
   useEffect(() => {
-    // Skip if Firebase is not initialized (server-side)
-    if (!isFirebaseInitialized()) {
-      setLoading(false);
-      return;
-    }
-
     const fetchThreads = async () => {
       try {
         const threadsQuery = query(
