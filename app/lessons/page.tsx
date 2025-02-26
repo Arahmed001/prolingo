@@ -18,6 +18,7 @@ export default function LessonsPage() {
     async function fetchLessons() {
       try {
         const lessonData = await getLessons();
+        console.log('Fetched lessons:', lessonData); // Log fetched lessons for debugging
         setLessons(lessonData);
         setLoading(false);
       } catch (err) {
@@ -77,8 +78,8 @@ export default function LessonsPage() {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
-                      <span className="text-primary">No image</span>
+                    <div className="absolute inset-0 bg-gray-300 flex items-center justify-center">
+                      <div className="w-16 h-12 bg-gray-400 rounded"></div>
                     </div>
                   )}
                   <div className="absolute top-4 right-4 bg-primary text-white text-sm font-medium py-1 px-3 rounded-full">
