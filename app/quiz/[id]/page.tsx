@@ -278,8 +278,8 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
         <Header />
         <div className="flex-grow flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-lg">Loading quiz...</p>
+            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-base sm:text-lg">Loading quiz...</p>
           </div>
         </div>
         <Footer />
@@ -293,9 +293,9 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
         <Header />
         <div className="flex-grow flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-            <p className="text-lg">{error || 'Failed to load quiz'}</p>
-            <Link href="/lessons" className="mt-6 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <h2 className="text-xl sm:text-2xl font-bold text-red-600 mb-3 sm:mb-4">Error</h2>
+            <p className="text-base sm:text-lg">{error || 'Failed to load quiz'}</p>
+            <Link href="/lessons" className="mt-4 sm:mt-6 inline-block px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base">
               Back to Lessons
             </Link>
           </div>
@@ -312,40 +312,40 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 py-4 sm:py-8">
         {!quizCompleted ? (
-          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
-            <div className="mb-6">
-              <Link href={`/lessons/${quiz.lessonId}`} className="text-blue-600 hover:underline flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-4 sm:p-6">
+            <div className="mb-4 sm:mb-6">
+              <Link href={`/lessons/${quiz.lessonId}`} className="text-blue-600 hover:underline flex items-center text-sm sm:text-base">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Back to Lesson
               </Link>
             </div>
             
-            <h1 className="text-2xl font-bold mb-4">{quiz.title}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{quiz.title}</h1>
             
-            <div className="mb-6">
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <div className="mb-4 sm:mb-6">
+              <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-1">
                 <span>Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
                 <span>{Math.round(progress)}% Complete</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+              <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
+                <div className="bg-blue-600 h-2 sm:h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
               </div>
             </div>
             
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">{currentQuestion.question}</h2>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">{currentQuestion.question}</h2>
               
               {/* Multiple Choice Question */}
               {currentQuestion.type === 'multiple-choice' && (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {currentQuestion.options.map((option, optionIndex) => (
                     <div 
                       key={optionIndex}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      className={`p-2 sm:p-3 border rounded-lg cursor-pointer transition-colors ${
                         selectedAnswers[currentQuestionIndex] === optionIndex
                           ? 'bg-blue-100 border-blue-500'
                           : 'hover:bg-gray-50'
@@ -353,18 +353,18 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                       onClick={() => handleAnswerSelect(currentQuestionIndex, optionIndex)}
                     >
                       <div className="flex items-center">
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-3 ${
+                        <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border flex items-center justify-center mr-2 sm:mr-3 ${
                           selectedAnswers[currentQuestionIndex] === optionIndex
                             ? 'border-blue-500 bg-blue-500'
                             : 'border-gray-400'
                         }`}>
                           {selectedAnswers[currentQuestionIndex] === optionIndex && (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 sm:h-3 sm:w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
                           )}
                         </div>
-                        <span>{option}</span>
+                        <span className="text-sm sm:text-base">{option}</span>
                       </div>
                     </div>
                   ))}
@@ -373,8 +373,8 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
               
               {/* Fill in the Blank Question */}
               {currentQuestion.type === 'fill' && (
-                <div className="space-y-4">
-                  <p className="text-gray-700 mb-2">
+                <div className="space-y-3 sm:space-y-4">
+                  <p className="text-sm sm:text-base text-gray-700 mb-1 sm:mb-2">
                     Fill in the blank with the correct answer:
                   </p>
                   <div className="relative">
@@ -383,7 +383,7 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                       value={fillAnswers[currentQuestionIndex] || ''}
                       onChange={(e) => handleFillAnswer(currentQuestionIndex, e.target.value)}
                       placeholder="Type your answer here"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="w-full p-2 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
                 </div>
@@ -391,34 +391,34 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
               
               {/* Matching Question */}
               {currentQuestion.type === 'match' && (
-                <div className="space-y-6">
-                  <p className="text-gray-700 mb-2">
+                <div className="space-y-4 sm:space-y-6">
+                  <p className="text-sm sm:text-base text-gray-700 mb-1 sm:mb-2">
                     Match each term with its correct definition by selecting from the dropdown:
                   </p>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {/* Left column: Terms */}
-                    <div className="space-y-3">
-                      <h3 className="font-medium text-gray-700">Terms</h3>
+                    <div className="space-y-2 sm:space-y-3">
+                      <h3 className="font-medium text-sm sm:text-base text-gray-700">Terms</h3>
                       {currentQuestion.pairs.map((pair, pairIndex) => {
                         const currentMatch = matchAnswers[currentQuestionIndex]?.find(
                           (match: Match) => match.term === pair.term
                         );
                         
                         return (
-                          <div key={pairIndex} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                          <div key={pairIndex} className="flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg text-sm sm:text-base">
                             <span className="font-medium">{pair.term}</span>
                             {currentMatch && (
                               <div className="ml-auto flex items-center text-blue-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
-                                <span className="mr-2">{currentMatch.definition}</span>
+                                <span className="mr-2 text-xs sm:text-sm">{currentMatch.definition}</span>
                                 <button 
                                   onClick={() => handleRemoveMatch(currentQuestionIndex, pair.term)}
                                   className="text-red-500 hover:text-red-700"
                                 >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
@@ -430,8 +430,8 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                     </div>
                     
                     {/* Right column: Definitions to select */}
-                    <div className="space-y-3">
-                      <h3 className="font-medium text-gray-700">Definitions</h3>
+                    <div className="space-y-2 sm:space-y-3">
+                      <h3 className="font-medium text-sm sm:text-base text-gray-700">Definitions</h3>
                       {currentQuestion.pairs.map((pair, pairIndex) => {
                         // Check if this definition is already matched
                         const isMatched = matchAnswers[currentQuestionIndex]?.some(
@@ -443,11 +443,11 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                         return (
                           <div 
                             key={pairIndex} 
-                            className="p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
+                            className="p-2 sm:p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
                           >
-                            <div className="flex justify-between items-center">
-                              <span>{pair.definition}</span>
-                              <div className="space-x-2">
+                            <div className="flex justify-between items-center flex-wrap">
+                              <span className="text-xs sm:text-sm mb-1 sm:mb-0">{pair.definition}</span>
+                              <div className="space-x-1 sm:space-x-2 flex flex-wrap">
                                 {currentQuestion.pairs.map((termPair, termIndex) => {
                                   // Check if this term is already matched
                                   const isTermMatched = matchAnswers[currentQuestionIndex]?.some(
@@ -460,7 +460,7 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                                     <button
                                       key={termIndex}
                                       onClick={() => handleMatchAnswer(currentQuestionIndex, termPair.term, pair.definition)}
-                                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                      className="px-1 sm:px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 mb-1"
                                     >
                                       {termPair.term}
                                     </button>
@@ -480,7 +480,7 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
             <div className="flex justify-between">
               <button
                 onClick={() => router.push(`/lessons/${quiz.lessonId}`)}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Exit Quiz
               </button>
@@ -488,7 +488,7 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
               <button
                 onClick={handleNextQuestion}
                 disabled={!isCurrentQuestionAnswered()}
-                className={`px-6 py-2 rounded-lg transition-colors ${
+                className={`px-4 sm:px-6 py-2 rounded-lg transition-colors text-xs sm:text-sm ${
                   isCurrentQuestionAnswered()
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -500,18 +500,18 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
           </div>
         ) : (
           // Quiz Results
-          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
-            <h1 className="text-2xl font-bold mb-4">Quiz Results</h1>
+          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-4 sm:p-6">
+            <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Quiz Results</h1>
             
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-lg font-medium">Your Score:</span>
-                <span className="text-xl font-bold">{score} / {quiz.questions.length}</span>
+                <span className="text-base sm:text-lg font-medium">Your Score:</span>
+                <span className="text-lg sm:text-xl font-bold">{score} / {quiz.questions.length}</span>
               </div>
               
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+              <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5 mb-2">
                 <div 
-                  className={`h-2.5 rounded-full ${
+                  className={`h-2 sm:h-2.5 rounded-full ${
                     (score / quiz.questions.length) >= 0.7 
                       ? 'bg-green-600' 
                       : (score / quiz.questions.length) >= 0.4 
@@ -522,7 +522,7 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                 ></div>
               </div>
               
-              <p className="text-center mt-2">
+              <p className="text-center mt-2 text-xs sm:text-sm">
                 {(score / quiz.questions.length) >= 0.8 
                   ? 'Excellent work! You have a great understanding of this material.'
                   : (score / quiz.questions.length) >= 0.6 
@@ -531,25 +531,25 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
               </p>
             </div>
             
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Review</h2>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Review</h2>
               
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {quiz.questions.map((question, questionIndex) => (
-                  <div key={questionIndex} className="p-4 border rounded-lg">
-                    <h3 className="font-medium mb-2">
+                  <div key={questionIndex} className="p-3 sm:p-4 border rounded-lg">
+                    <h3 className="text-sm sm:text-base font-medium mb-2">
                       Question {questionIndex + 1}: {question.question}
                     </h3>
                     
                     {/* Multiple Choice Review */}
                     {question.type === 'multiple-choice' && (
                       <div>
-                        <p className="mb-2">
+                        <p className="mb-1 sm:mb-2 text-xs sm:text-sm">
                           Your answer: {selectedAnswers[questionIndex] !== -1 
                             ? question.options[selectedAnswers[questionIndex]] 
                             : 'Not answered'}
                         </p>
-                        <p className="mb-2">
+                        <p className="mb-1 sm:mb-2 text-xs sm:text-sm">
                           Correct answer: {question.options[question.correctAnswer]}
                         </p>
                       </div>
@@ -558,10 +558,10 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                     {/* Fill in the Blank Review */}
                     {question.type === 'fill' && (
                       <div>
-                        <p className="mb-2">
+                        <p className="mb-1 sm:mb-2 text-xs sm:text-sm">
                           Your answer: {fillAnswers[questionIndex] || 'Not answered'}
                         </p>
-                        <p className="mb-2">
+                        <p className="mb-1 sm:mb-2 text-xs sm:text-sm">
                           Correct answer: {question.answer}
                         </p>
                       </div>
@@ -570,8 +570,8 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                     {/* Matching Review */}
                     {question.type === 'match' && (
                       <div>
-                        <p className="mb-2">Your matches:</p>
-                        <ul className="list-disc list-inside mb-2">
+                        <p className="mb-1 sm:mb-2 text-xs sm:text-sm">Your matches:</p>
+                        <ul className="list-disc list-inside mb-1 sm:mb-2 text-xs sm:text-sm">
                           {matchAnswers[questionIndex]?.map((match, matchIndex) => (
                             <li key={matchIndex}>
                               {match.term} → {match.definition}
@@ -579,8 +579,8 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                           )) || <li>No matches provided</li>}
                         </ul>
                         
-                        <p className="mb-2">Correct matches:</p>
-                        <ul className="list-disc list-inside">
+                        <p className="mb-1 sm:mb-2 text-xs sm:text-sm">Correct matches:</p>
+                        <ul className="list-disc list-inside text-xs sm:text-sm">
                           {question.pairs.map((pair, pairIndex) => (
                             <li key={pairIndex}>
                               {pair.term} → {pair.definition}
@@ -590,7 +590,7 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
                       </div>
                     )}
                     
-                    <div className={`mt-3 p-3 rounded-lg ${
+                    <div className={`mt-2 sm:mt-3 p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${
                       explanations[questionIndex]?.startsWith('Correct') 
                         ? 'bg-green-50 text-green-800' 
                         : 'bg-red-50 text-red-800'
@@ -605,14 +605,14 @@ const QuizPage = ({ params }: { params: { id: string } }) => {
             <div className="flex justify-between">
               <button
                 onClick={() => router.push(`/lessons/${quiz.lessonId}`)}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Back to Lesson
               </button>
               
               <button
                 onClick={handleRestartQuiz}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm"
               >
                 Retry Quiz
               </button>
