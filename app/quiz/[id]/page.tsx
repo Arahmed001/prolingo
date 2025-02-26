@@ -226,7 +226,7 @@ export default function QuizPage({ params }: { params: { id: string } }) {
         } else {
           let explanation = "Incorrect matches. The correct pairs are: ";
           matchQuestion.pairs.forEach((pair, i) => {
-            explanation += `"${pair.term}" → "${pair.definition}"${i < matchQuestion.pairs.length - 1 ? ', ' : ''}`;
+            explanation += `"${pair.term}" matches "${pair.definition}"${i < matchQuestion.pairs.length - 1 ? ', ' : ''}`;
           });
           newExplanations[index] = explanation;
         }

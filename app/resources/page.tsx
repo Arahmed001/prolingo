@@ -17,7 +17,10 @@ export default function ResourcesPage() {
               Comprehensive guides on various ESL teaching methodologies and best practices.
             </p>
             <a href="#" className="text-secondary hover:text-secondary/80 font-medium">
-              Browse Guides →
+              Browse Guides 
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </a>
           </div>
           
@@ -27,7 +30,10 @@ export default function ResourcesPage() {
               Printable worksheets for various language skills and proficiency levels.
             </p>
             <a href="#" className="text-secondary hover:text-secondary/80 font-medium">
-              Download Worksheets →
+              Download Worksheets 
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </a>
           </div>
           
@@ -37,7 +43,10 @@ export default function ResourcesPage() {
               Step-by-step video guides on using ProLingo features effectively.
             </p>
             <a href="#" className="text-secondary hover:text-secondary/80 font-medium">
-              Watch Videos →
+              Watch Videos 
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </a>
           </div>
           
@@ -47,7 +56,10 @@ export default function ResourcesPage() {
               Recorded and upcoming webinars on ESL teaching topics and platform updates.
             </p>
             <a href="#" className="text-secondary hover:text-secondary/80 font-medium">
-              Join Webinars →
+              Join Webinars 
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </a>
           </div>
         </div>

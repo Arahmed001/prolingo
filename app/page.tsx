@@ -95,10 +95,30 @@ export default function Home() {
                           </div>
                           <div>
                             <div className="text-secondary/90 text-xs mb-1">Activities</div>
-                            <div>• Reading comprehension: "Travel Stories"</div>
-                            <div>• Speaking: Interview about travel experiences</div>
-                            <div>• Grammar exercise: Tense review</div>
-                            <div>• Writing: Postcard from a trip</div>
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 text-primary mr-2" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3" />
+                              </svg>
+                              <span>Reading comprehension: "Travel Stories"</span>
+                            </div>
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 text-primary mr-2" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3" />
+                              </svg>
+                              <span>Speaking: Interview about travel experiences</span>
+                            </div>
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 text-primary mr-2" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3" />
+                              </svg>
+                              <span>Grammar exercise: Tense review</span>
+                            </div>
+                            <div className="flex items-center">
+                              <svg className="h-3 w-3 text-primary mr-2" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3" />
+                              </svg>
+                              <span>Writing: Postcard from a trip</span>
+                            </div>
                           </div>
                           <div className="text-xs italic text-white/60 mt-2">
                             *Generated in 3 seconds with ProLingo AI
