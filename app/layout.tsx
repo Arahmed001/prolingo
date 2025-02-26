@@ -1,12 +1,21 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import { Inter } from "next/font/google"
+import { Poppins, Open_Sans } from "next/font/google"
 import Footer from './components/Footer'
 import Header from './components/Header'
 import AccessibilityProvider from './components/AccessibilityProvider'
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-poppins',
+  display: 'swap',
+})
+
+const openSans = Open_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-open-sans',
   display: 'swap',
 })
 
@@ -21,8 +30,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.className}>
-      <body>
+    <html lang="en" className={`${poppins.variable} ${openSans.variable}`}>
+      <body className={openSans.className}>
         <AccessibilityProvider />
         <Header />
         {children}

@@ -15,6 +15,10 @@
   --card-foreground: 15, 23, 42; /* Slate 900 */
   --border: 226, 232, 240;       /* Slate 200 */
   --input: 226, 232, 240;        /* Slate 200 */
+  
+  /* Font variables */
+  --font-heading: var(--font-poppins);
+  --font-body: var(--font-open-sans);
 }
 
 @layer base {
@@ -22,10 +26,32 @@
     @apply antialiased;
     color: rgb(var(--foreground));
     background: rgb(var(--background));
+    font-family: var(--font-body);
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold tracking-tight;
+    font-family: var(--font-heading);
+  }
+  
+  h1 {
+    @apply text-3xl sm:text-4xl md:text-5xl;
+  }
+  
+  h2 {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+  }
+  
+  h3 {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+  
+  h4 {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  p {
+    @apply text-base sm:text-lg leading-relaxed;
   }
   
   /* High Contrast Mode */
@@ -83,30 +109,43 @@
   }
   
   .btn-primary {
-    @apply bg-primary text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
+    @apply bg-primary text-white font-medium py-2 px-4 sm:py-3 sm:px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm sm:text-base;
   }
   
   .btn-secondary {
-    @apply bg-secondary text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200;
+    @apply bg-secondary text-white font-medium py-2 px-4 sm:py-3 sm:px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm sm:text-base;
   }
   
   .card {
-    @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary;
+    @apply bg-white p-4 sm:p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary;
   }
   
   .accent-card {
-    @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border-l-4 border-l-accent;
+    @apply bg-white p-4 sm:p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border-l-4 border-l-accent;
   }
   
   .section {
-    @apply py-16 px-4;
+    @apply py-10 sm:py-16 px-4;
   }
   
   .highlight-box {
-    @apply bg-muted p-6 rounded-lg border-l-4 border-l-primary;
+    @apply bg-muted p-4 sm:p-6 rounded-lg border-l-4 border-l-primary;
   }
   
   .nav-link {
     @apply text-foreground hover:text-primary transition-colors duration-200;
   }
-} 
+  
+  /* Mobile responsiveness utilities */
+  .responsive-container {
+    @apply w-full px-4 sm:px-6 lg:px-8 mx-auto;
+  }
+  
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8;
+  }
+  
+  .responsive-flex {
+    @apply flex flex-col sm:flex-row items-center;
+  }
+}

@@ -12,9 +12,16 @@ module.exports = {
         primary: {
           DEFAULT: 'rgb(var(--primary))',
           light: 'rgb(var(--primary-light))',
+          dark: 'rgb(12, 17, 66)',
         },
-        secondary: 'rgb(var(--secondary))',
-        accent: 'rgb(var(--accent))',
+        secondary: {
+          DEFAULT: 'rgb(var(--secondary))',
+          dark: 'rgb(187, 55, 55)',
+        },
+        accent: {
+          DEFAULT: 'rgb(var(--accent))',
+          dark: 'rgb(217, 159, 15)',
+        },
         background: 'rgb(var(--background))',
         foreground: 'rgb(var(--foreground))',
         muted: {
@@ -29,10 +36,14 @@ module.exports = {
         input: 'rgb(var(--input))',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['var(--font-open-sans)', 'sans-serif'],
+        heading: ['var(--font-poppins)', 'sans-serif'],
       },
       boxShadow: {
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+      },
+      screens: {
+        'xs': '480px',
       },
     },
   },
