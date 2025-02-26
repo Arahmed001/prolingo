@@ -1,6 +1,8 @@
 "use client";
 
-import React from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -11,98 +13,237 @@ interface CulturalCard {
   color: string;
 }
 
+// Cultural insights data
+const culturalInsights = [
+  {
+    id: 1,
+    title: 'Greetings',
+    note: 'Hello is common in English-speaking countries, but many cultures have unique greetings. In Japan, people bow instead of shaking hands, while in France, friends often greet with kisses on the cheek.',
+    imageUrl: '/images/greetings.svg',
+  },
+  {
+    id: 2,
+    title: 'Idioms',
+    note: '"Rain cats and dogs" means heavy rain in English. This phrase dates back to the 1700s, possibly referring to the poor drainage systems where animals would appear in streets after storms.',
+    imageUrl: '/images/idioms.svg',
+  },
+  {
+    id: 3,
+    title: 'Traditions',
+    note: 'Thanksgiving is celebrated in November in the United States. This harvest festival brings families together for a traditional meal of turkey, stuffing, and pumpkin pie to express gratitude.',
+    imageUrl: '/images/traditions.svg',
+  },
+];
+
+// Quiz questions
+const quizQuestions = [
+  {
+    id: 1,
+    question: 'What does "rain cats and dogs" mean?',
+    options: [
+      { id: 'a', text: 'Pets falling from the sky' },
+      { id: 'b', text: 'Heavy rain' },
+      { id: 'c', text: 'Animals fighting' },
+      { id: 'd', text: 'A pet parade' },
+    ],
+    correctAnswer: 'b',
+  },
+  {
+    id: 2,
+    question: 'When is Thanksgiving celebrated in the United States?',
+    options: [
+      { id: 'a', text: 'October' },
+      { id: 'b', text: 'November' },
+      { id: 'c', text: 'December' },
+      { id: 'd', text: 'January' },
+    ],
+    correctAnswer: 'b',
+  },
+];
+
 export default function CulturalInsightsPage() {
-  // Static cultural insights cards
-  const culturalCards: CulturalCard[] = [
-    {
-      title: 'Greetings',
-      note: 'In English-speaking countries, a handshake is the common greeting in formal settings, while a simple "Hello" or "Hi" is used in casual encounters. In contrast, many European cultures greet with cheek kisses.',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-        </svg>
-      ),
-      color: 'bg-blue-50 border-blue-200'
-    },
-    {
-      title: 'Idioms',
-      note: '"It\'s raining cats and dogs" means it\'s raining heavily. This peculiar phrase likely originated in 17th century England when poor drainage systems would cause drowned animals to wash up in the streets after storms.',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-        </svg>
-      ),
-      color: 'bg-purple-50 border-purple-200'
-    },
-    {
-      title: 'Table Manners',
-      note: 'In the United States, it\'s common to switch the fork to your dominant hand after cutting food. In Europe, however, the fork typically remains in the left hand and the knife in the right throughout the meal.',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-        </svg>
-      ),
-      color: 'bg-amber-50 border-amber-200'
-    }
-  ];
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
+  const [showResults, setShowResults] = useState(false);
+
+  // Handle selecting an answer
+  const handleSelectAnswer = (questionId: number, optionId: string) => {
+    setSelectedAnswers({
+      ...selectedAnswers,
+      [questionId]: optionId,
+    });
+  };
+
+  // Handle submitting the quiz
+  const handleSubmitQuiz = () => {
+    setShowResults(true);
+  };
+
+  // Calculate score
+  const calculateScore = () => {
+    let score = 0;
+    quizQuestions.forEach((question) => {
+      if (selectedAnswers[question.id] === question.correctAnswer) {
+        score += 1;
+      }
+    });
+    return score;
+  };
+
+  // Reset quiz
+  const handleResetQuiz = () => {
+    setSelectedAnswers({});
+    setShowResults(false);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-grow bg-gray-50 py-8 sm:py-12">
+      <main className="flex-grow bg-gray-50 py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Page Header */}
-          <div className="text-center mb-8 sm:mb-12">
-            <h1 className="font-heading text-3xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Cultural Insights</h1>
-            <p className="max-w-2xl mx-auto text-base sm:text-xl text-gray-600">
-              Discover the nuances of language and culture that make communication meaningful.
-            </p>
-          </div>
+          <h1 className="text-4xl font-bold text-center text-gray-900 mb-12">Cultural Insights</h1>
           
-          {/* Cultural Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {culturalCards.map((card, index) => (
-              <div 
-                key={index} 
-                className={`rounded-lg border ${card.color} overflow-hidden shadow-sm transition-all hover:shadow-md`}
-              >
-                <div className="p-5 sm:p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="mr-3 p-2 rounded-full bg-white shadow-sm">
-                      {card.icon}
+          {/* Cultural Insights Cards */}
+          <section className="mb-16">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Explore Cultural Nuances</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {culturalInsights.map((insight) => (
+                <div 
+                  key={insight.id} 
+                  className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg hover:-translate-y-1"
+                >
+                  <div className="p-6">
+                    <div className="flex justify-center mb-4">
+                      <Image 
+                        src={insight.imageUrl} 
+                        alt={insight.title} 
+                        width={80} 
+                        height={80}
+                        className="rounded-md"
+                      />
                     </div>
-                    <h2 className="font-heading text-lg sm:text-xl font-semibold text-gray-900">{card.title}</h2>
+                    <h3 className="text-xl font-bold text-blue-600 mb-3">{insight.title}</h3>
+                    <p className="text-gray-600">{insight.note}</p>
                   </div>
-                  <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
-                    {card.note}
-                  </p>
                 </div>
-                <div className={`px-5 sm:px-6 py-3 bg-white border-t ${card.color.replace('bg-', 'border-')}`}>
-                  <button className="text-primary hover:text-primary-dark font-medium text-sm transition-colors flex items-center">
-                    Learn more
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+              ))}
+            </div>
+          </section>
+          
+          {/* Comprehension Quiz */}
+          <section className="bg-white rounded-lg shadow-md p-6 mb-12">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Cultural Comprehension Quiz</h2>
+            
+            {!showResults ? (
+              <div>
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Question {quizQuestions[currentQuestion].id} of {quizQuestions.length}
+                  </h3>
+                  <p className="text-xl font-medium text-gray-800 mb-6">
+                    {quizQuestions[currentQuestion].question}
+                  </p>
+                  <div className="space-y-3">
+                    {quizQuestions[currentQuestion].options.map((option) => (
+                      <div 
+                        key={option.id}
+                        className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                          selectedAnswers[quizQuestions[currentQuestion].id] === option.id
+                            ? 'bg-blue-50 border-blue-500'
+                            : 'hover:bg-gray-50 border-gray-200'
+                        }`}
+                        onClick={() => handleSelectAnswer(quizQuestions[currentQuestion].id, option.id)}
+                      >
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            className="form-radio h-5 w-5 text-blue-600"
+                            checked={selectedAnswers[quizQuestions[currentQuestion].id] === option.id}
+                            onChange={() => handleSelectAnswer(quizQuestions[currentQuestion].id, option.id)}
+                          />
+                          <span className="ml-3 text-gray-700">{option.text}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex justify-between">
+                  <button
+                    onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+                    disabled={currentQuestion === 0}
+                    className={`px-4 py-2 rounded-md ${
+                      currentQuestion === 0
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Previous
                   </button>
+                  
+                  {currentQuestion < quizQuestions.length - 1 ? (
+                    <button
+                      onClick={() => setCurrentQuestion(currentQuestion + 1)}
+                      disabled={!selectedAnswers[quizQuestions[currentQuestion].id]}
+                      className={`px-4 py-2 rounded-md ${
+                        !selectedAnswers[quizQuestions[currentQuestion].id]
+                          ? 'bg-blue-300 text-white cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSubmitQuiz}
+                      disabled={!Object.keys(selectedAnswers).length || Object.keys(selectedAnswers).length < quizQuestions.length}
+                      className={`px-4 py-2 rounded-md ${
+                        !Object.keys(selectedAnswers).length || Object.keys(selectedAnswers).length < quizQuestions.length
+                          ? 'bg-blue-300 text-white cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Submit Quiz
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-          
-          {/* Additional Content Section */}
-          <div className="mt-10 sm:mt-16 bg-white rounded-lg shadow-sm p-5 sm:p-8 border border-gray-200">
-            <h2 className="font-heading text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">Why Cultural Insights Matter</h2>
-            <p className="text-gray-700 text-sm sm:text-base mb-4">
-              Understanding cultural nuances is essential for effective communication in a new language. 
-              Beyond vocabulary and grammar, cultural context shapes how native speakers interpret and 
-              respond to different situations.
-            </p>
-            <p className="text-gray-700 text-sm sm:text-base">
-              Our cultural insights help you navigate social interactions with confidence, avoid 
-              misunderstandings, and connect more authentically with native speakers.
-            </p>
-          </div>
+            ) : (
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Quiz Results</h3>
+                <p className="text-xl mb-6">
+                  You scored {calculateScore()} out of {quizQuestions.length}!
+                </p>
+                
+                <div className="mb-8">
+                  {quizQuestions.map((question) => (
+                    <div key={question.id} className="mb-6 text-left bg-gray-50 p-4 rounded-lg">
+                      <p className="font-medium text-gray-800 mb-2">{question.question}</p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Your answer: {question.options.find(o => o.id === selectedAnswers[question.id])?.text || 'Not answered'}
+                      </p>
+                      <p className="text-sm font-medium text-green-600">
+                        Correct answer: {question.options.find(o => o.id === question.correctAnswer)?.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={handleResetQuiz}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Try Again
+                  </button>
+                  <Link href="/" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                    Back to Home
+                  </Link>
+                </div>
+              </div>
+            )}
+          </section>
         </div>
       </main>
       
