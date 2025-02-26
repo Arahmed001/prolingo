@@ -143,12 +143,20 @@ export default function ContactPage() {
           <h2 className="text-xl font-semibold text-primary mb-4">Other Ways to Reach Us</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <div className="text-primary mb-2">📧</div>
+              <div className="text-primary mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
               <h3 className="font-medium">Email</h3>
               <p className="text-sm text-muted-foreground">support@prolingo.com</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <div className="text-primary mb-2">📱</div>
+              <div className="text-primary mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
               <h3 className="font-medium">Phone</h3>
               <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
             </div>
