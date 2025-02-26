@@ -5,11 +5,33 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getLessons } from '../../lib/services/lessonService';
 import { Lesson } from '../../lib/types';
+import FirebaseGuard from '../components/FirebaseGuard';
 
 // Prevent static prerendering
 export const dynamic = 'force-dynamic';
 
 export default function LessonsPage() {
+  return (
+    <FirebaseGuard
+      fallback={
+        <div className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold text-primary mb-4">English Lessons</h1>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Loading lessons...
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <LessonsContent />
+    </FirebaseGuard>
+  );
+}
+
+function LessonsContent() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
