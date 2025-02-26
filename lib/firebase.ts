@@ -17,28 +17,50 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase only if we're in the browser and have valid config
-let app: FirebaseApp | undefined;
-let auth: Auth;
-let db: Firestore;
-let analytics: Analytics | undefined;
-
-// Only initialize Firebase if we're in the browser and have a valid API key
-if (isBrowser && firebaseConfig.apiKey) {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    auth = getAuth(app);
-    db = getFirestore(app);
-    analytics = getAnalytics(app);
-  } catch (error) {
-    console.error('Firebase initialization error:', error);
+// Create a function to initialize Firebase
+function initializeFirebase() {
+  // Only initialize Firebase if we're in the browser and have a valid API key
+  if (isBrowser && firebaseConfig.apiKey) {
+    try {
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const analytics = isBrowser ? getAnalytics(app) : undefined;
+      
+      return { app, auth, db, analytics };
+    } catch (error) {
+      console.error('Firebase initialization error:', error);
+      return null;
+    }
   }
-} else {
-  // Create empty objects for server-side rendering
-  // This ensures the variables are always defined with the correct types
-  auth = {} as Auth;
-  db = {} as Firestore;
-  console.warn('Firebase not initialized. Missing config or running on server.');
+  return null;
 }
 
-export { auth, db, analytics }; 
+// Create mock implementations for server-side rendering
+const mockAuth = {
+  currentUser: null,
+  onAuthStateChanged: () => () => {},
+} as unknown as Auth;
+
+const mockFirestore = {
+  collection: () => ({
+    doc: () => ({
+      get: () => Promise.resolve({ exists: false, data: () => ({}) }),
+      set: () => Promise.resolve(),
+    }),
+    where: () => ({
+      get: () => Promise.resolve({ empty: true, docs: [] }),
+    }),
+  }),
+} as unknown as Firestore;
+
+// Initialize Firebase or use mocks
+const firebaseInstance = initializeFirebase();
+
+// Export the initialized services or mocks
+export const auth = firebaseInstance?.auth || mockAuth;
+export const db = firebaseInstance?.db || mockFirestore;
+export const analytics = firebaseInstance?.analytics;
+
+// Export a function to check if Firebase is initialized
+export const isFirebaseInitialized = () => !!firebaseInstance; 

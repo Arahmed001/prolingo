@@ -1,10 +1,13 @@
 "use client";
 
+// Add this line to prevent static pre-rendering
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, getDoc, doc, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { db, isFirebaseInitialized } from '../../../lib/firebase';
 import Header from '../../../app/components/Header';
 import Footer from '../../../app/components/Footer';
 
@@ -42,6 +45,11 @@ export default function TeacherDashboard() {
 
   // Check if user is logged in and is a teacher
   useEffect(() => {
+    // Skip if Firebase is not initialized (server-side)
+    if (!isFirebaseInitialized()) {
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser({
@@ -73,9 +81,12 @@ export default function TeacherDashboard() {
 
   // Fetch students and their progress
   useEffect(() => {
+    // Skip if Firebase is not initialized (server-side) or user is not a teacher
+    if (!isFirebaseInitialized() || !isTeacher) {
+      return;
+    }
+    
     const fetchStudents = async () => {
-      if (!isTeacher) return;
-      
       try {
         // Get all users with role 'student'
         const usersQuery = query(

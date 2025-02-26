@@ -1,10 +1,13 @@
 "use client";
 
+// Add this line to prevent static pre-rendering
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { db } from '../../lib/firebase';
+import { db, isFirebaseInitialized } from '../../lib/firebase';
 import Header from '../../app/components/Header';
 import Footer from '../../app/components/Footer';
 
@@ -28,6 +31,11 @@ export default function CommunityPage() {
 
   // Check if user is logged in
   useEffect(() => {
+    // Skip if Firebase is not initialized (server-side)
+    if (!isFirebaseInitialized()) {
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser({
@@ -44,6 +52,12 @@ export default function CommunityPage() {
 
   // Fetch threads from Firestore
   useEffect(() => {
+    // Skip if Firebase is not initialized (server-side)
+    if (!isFirebaseInitialized()) {
+      setLoading(false);
+      return;
+    }
+
     const fetchThreads = async () => {
       try {
         const threadsQuery = query(
