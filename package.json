@@ -40,6 +40,7 @@
     "react-i18next": "^15.4.1",
     "redis": "^4.6.13",
     "stability-client": "^1.9.0",
+    "three-bmfont-text": "https://github.com/dmarcos/three-bmfont-text.git",
     "zod": "^3.22.4"
   },
   "devDependencies": {
