@@ -4,11 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
+// Import db but only use it client-side
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { usePerformanceMonitoring } from '../../lib/performance';
+
+// Tell Next.js this is a dynamic page that should not be statically generated
+export const dynamic = 'force-dynamic';
 
 // Dynamically import Chart.js components with error handling
 let ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement;
@@ -48,16 +52,6 @@ try {
 } catch (error) {
   console.error('Error loading chart libraries:', error);
   // Create placeholder components if the libraries fail to load
-  Line = ({ data, options }) => (
-    <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
-      <p>Chart visualization not available</p>
-    </div>
-  );
-  Pie = ({ data, options }) => (
-    <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
-      <p>Chart visualization not available</p>
-    </div>
-  );
 }
 
 // We use client-only rendering to avoid SSR issues with charts
@@ -111,56 +105,67 @@ export default function AnalyticsPage() {
   // Add performance monitoring
   usePerformanceMonitoring('/analytics');
   
+  // Add isClient state to track client-side rendering
+  const [isClient, setIsClient] = useState(false);
+  
   useEffect(() => {
+    // Set isClient to true once component mounts (client-side only)
+    setIsClient(true);
+  }, []);
+
+  // Modify the fetchAnalytics function to only run client-side
+  useEffect(() => {
+    if (isClient) {
+      fetchAnalytics();
+    }
+  }, [isClient]); // Only run when isClient changes to true
+
+  const fetchAnalytics = async () => {
     if (!auth.currentUser) {
       router.push('/login');
       return;
     }
 
-    const fetchAnalytics = async () => {
-      try {
-        const progressQuery = query(
-          collection(db, 'progress'),
-          where('userId', '==', auth.currentUser!.uid)
-        );
-        const progressSnapshot = await getDocs(progressQuery);
-        
-        if (progressSnapshot.empty) {
-          await addSampleData();
-          return;
-        }
-
-        // Process progress data
-        const progressData = progressSnapshot.docs.map(doc => ({
-          ...doc.data(),
-          date: doc.data().timestamp?.toDate() || new Date()
-        })) as ProgressEntry[];
-
-        // Enhanced analytics calculations
-        const last30Days = calculateDailyProgress(progressData);
-        const skills = calculateSkillDistribution(progressData);
-        const patterns = analyzeLearningPatterns(progressData);
-        const trends = calculateSkillTrends(progressData);
-        
-        const avgScore = calculateAverageScore(progressData);
-        const prediction = generateDetailedPrediction(progressData);
-
-        setDailyProgress(last30Days);
-        setSkillDistribution(skills);
-        setLearningPattern(patterns);
-        setSkillTrends(trends);
-        setAverageScore(avgScore);
-        setPredictedLevel(prediction);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching analytics:', error);
-        setError('Failed to load analytics data. Please try again later.');
-        setLoading(false);
+    try {
+      const progressQuery = query(
+        collection(db, 'progress'),
+        where('userId', '==', auth.currentUser!.uid)
+      );
+      const progressSnapshot = await getDocs(progressQuery);
+      
+      if (progressSnapshot.empty) {
+        await addSampleData();
+        return;
       }
-    };
 
-    fetchAnalytics();
-  }, [router]);
+      // Process progress data
+      const progressData = progressSnapshot.docs.map(doc => ({
+        ...doc.data(),
+        date: doc.data().timestamp?.toDate() || new Date()
+      })) as ProgressEntry[];
+
+      // Enhanced analytics calculations
+      const last30Days = calculateDailyProgress(progressData);
+      const skills = calculateSkillDistribution(progressData);
+      const patterns = analyseLearningPatterns(progressData);
+      const trends = calculateSkillTrends(progressData);
+      
+      const avgScore = calculateAverageScore(progressData);
+      const prediction = generateDetailedPrediction(progressData);
+
+      setDailyProgress(last30Days);
+      setSkillDistribution(skills);
+      setLearningPattern(patterns);
+      setSkillTrends(trends);
+      setAverageScore(avgScore);
+      setPredictedLevel(prediction);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      setError('Failed to load analytics data. Please try again later.');
+      setLoading(false);
+    }
+  };
 
   const addSampleData = async () => {
     try {
@@ -277,7 +282,7 @@ export default function AnalyticsPage() {
     return Math.round(total / data.length);
   };
 
-  const analyzeLearningPatterns = (data: ProgressEntry[]): LearningPattern => {
+  const analyseLearningPatterns = (data: ProgressEntry[]): LearningPattern => {
     // Group sessions by hour of day
     const hourlyActivity = new Map<number, number>();
     const dayActivity = new Map<string, number>();

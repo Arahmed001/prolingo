@@ -5,6 +5,9 @@ import Footer from './components/Footer'
 import Header from './components/Header'
 import AccessibilityProvider from './components/AccessibilityProvider'
 import DataInitializer from './components/DataInitializer'
+import I18nProvider from './components/I18nProvider'
+import { appWithTranslation } from 'next-i18next'
+import nextI18nConfig from '../next-i18next.config.js'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -25,20 +28,24 @@ export const metadata: Metadata = {
   description: 'AI-powered language learning platform',
 }
 
-export default function RootLayout({
+function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
     <html lang="en" className={`${poppins.variable} ${openSans.variable}`}>
-      <body className={openSans.className}>
+      <body className={`${openSans.className} min-h-screen flex flex-col`}>
         <AccessibilityProvider />
         <DataInitializer />
-        <Header />
-        {children}
-        <Footer />
+        <I18nProvider>
+          <Header />
+          {children}
+          <Footer />
+        </I18nProvider>
       </body>
     </html>
   )
-} 
+}
+
+export default RootLayout; 
