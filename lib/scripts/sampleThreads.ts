@@ -19,16 +19,16 @@ const sampleThreads = [
     authorName: 'Test User',
     createdAt: new Date(),
     responseCount: 0,
-    likes: 2
+    likes: 0
   },
   {
     id: 'thread3',
-    title: 'Tips for improving listening comprehension',
+    title: 'Resources for learning French pronunciation',
     authorEmail: 'test@prolingo.com',
     authorName: 'Test User',
     createdAt: new Date(),
     responseCount: 0,
-    likes: 5
+    likes: 0
   }
 ];
 
@@ -37,32 +37,29 @@ export async function addSampleThreads() {
   try {
     // Check if threads already exist
     const threadsCollection = collection(db, 'threads');
-    const threadSnapshot = await getDocs(threadsCollection);
+    const threadsSnapshot = await getDocs(threadsCollection);
     
-    if (threadSnapshot.empty) {
-      console.log('No threads found. Adding sample threads...');
-      
-      // Add each sample thread
-      for (const thread of sampleThreads) {
-        const threadRef = doc(db, 'threads', thread.id);
-        await setDoc(threadRef, {
-          ...thread,
-          createdAt: serverTimestamp()
-        });
-        console.log(`Added thread: ${thread.title}`);
-      }
-      
-      console.log('Sample threads added successfully!');
-      return true;
-    } else {
+    if (!threadsSnapshot.empty) {
       console.log('Threads already exist in the database.');
       return false;
     }
+    
+    // Add each thread to Firestore
+    for (const thread of sampleThreads) {
+      await setDoc(doc(db, 'threads', thread.id), {
+        ...thread,
+        createdAt: serverTimestamp()
+      });
+      console.log(`Added thread: ${thread.title}`);
+    }
+    
+    console.log('Sample threads added successfully!');
+    return true;
   } catch (error) {
     console.error('Error adding sample threads:', error);
     return false;
   }
 }
 
-// Export the sample threads for testing
+// Export the sample threads for use in other files
 export { sampleThreads }; 

@@ -19,21 +19,15 @@ const sampleQuizzes: Quiz[] = [
       },
       {
         id: 2,
-        type: 'fill',
-        question: '_____ means "Hello" in a casual setting.',
-        answer: 'Hi',
-        explanation: 'Hi is a casual greeting commonly used in English.'
+        type: 'true-false',
+        question: 'It is appropriate to use "Hey there!" in a formal business email.',
+        correctAnswer: false
       },
       {
         id: 3,
-        type: 'match',
-        question: 'Match the greeting with its appropriate context:',
-        pairs: [
-          { term: 'Good morning', definition: 'Used before noon' },
-          { term: 'Good afternoon', definition: 'Used from noon to evening' },
-          { term: 'Good evening', definition: 'Used after sunset' },
-          { term: 'Good night', definition: 'Used when parting at night' }
-        ]
+        type: 'fill-in-blank',
+        question: 'The phrase "_____ to meet you" is commonly used when meeting someone for the first time.',
+        correctAnswer: 'nice'
       }
     ]
   },
@@ -41,36 +35,23 @@ const sampleQuizzes: Quiz[] = [
     id: 'quiz2',
     lessonId: 'lesson2',
     title: 'Common Phrases Quiz',
-    description: 'Test your knowledge of common everyday phrases',
+    description: 'Test your knowledge of everyday phrases',
     questions: [
       {
         id: 1,
         type: 'multiple-choice',
         question: 'Which phrase would you use to ask someone to repeat something?',
-        options: [
-          'I don\'t understand.',
-          'Could you repeat that, please?',
-          'Nice to meet you.',
-          'See you later.'
-        ],
-        correctAnswer: 1
+        options: ['Excuse me?', 'I don\'t care.', 'That\'s fine.', 'See you later.'],
+        correctAnswer: 0
       },
       {
         id: 2,
-        type: 'fill',
-        question: 'To express gratitude, you can say "_____".',
-        answer: 'Thank you',
-        explanation: '"Thank you" is the most common way to express gratitude in English.'
-      },
-      {
-        id: 3,
-        type: 'match',
-        question: 'Match these phrases with their meanings:',
-        pairs: [
-          { term: 'Excuse me', definition: 'Getting attention politely' },
-          { term: 'I\'m sorry', definition: 'Apologizing' },
-          { term: 'Congratulations', definition: 'Celebrating achievement' },
-          { term: 'Take care', definition: 'Saying goodbye with concern' }
+        type: 'matching',
+        question: 'Match the phrases with their appropriate contexts:',
+        options: [
+          { text: 'Cheers!', match: 'Toasting at a celebration' },
+          { text: 'Bless you!', match: 'After someone sneezes' },
+          { text: 'Take care!', match: 'Saying goodbye' }
         ]
       }
     ]
@@ -82,29 +63,26 @@ export async function addSampleQuizzes() {
   try {
     // Check if quizzes already exist
     const quizzesCollection = collection(db, 'quizzes');
-    const quizSnapshot = await getDocs(quizzesCollection);
+    const quizzesSnapshot = await getDocs(quizzesCollection);
     
-    if (quizSnapshot.empty) {
-      console.log('No quizzes found. Adding sample quizzes...');
-      
-      // Add each sample quiz
-      for (const quiz of sampleQuizzes) {
-        const quizRef = doc(db, 'quizzes', quiz.id);
-        await setDoc(quizRef, quiz);
-        console.log(`Added quiz: ${quiz.title}`);
-      }
-      
-      console.log('Sample quizzes added successfully!');
-      return true;
-    } else {
+    if (!quizzesSnapshot.empty) {
       console.log('Quizzes already exist in the database.');
       return false;
     }
+    
+    // Add each quiz to Firestore
+    for (const quiz of sampleQuizzes) {
+      await setDoc(doc(db, 'quizzes', quiz.id), quiz);
+      console.log(`Added quiz: ${quiz.title}`);
+    }
+    
+    console.log('Sample quizzes added successfully!');
+    return true;
   } catch (error) {
     console.error('Error adding sample quizzes:', error);
     return false;
   }
 }
 
-// Export the sample quizzes for testing
+// Export the sample quizzes for use in other files
 export { sampleQuizzes }; 
