@@ -42,20 +42,20 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto">
-        <div className="text-center mb-8">
+    <div id="main-content" className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
+      <div id="main-content" className="max-w-md mx-auto">
+        <div id="main-content" className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">Contact Us</h1>
           <p className="text-muted-foreground">
             Have questions or feedback? We'd love to hear from you.
           </p>
         </div>
 
-        <div className="bg-white p-8 rounded-xl shadow-md">
+        <div id="main-content" className="bg-white p-8 rounded-xl shadow-md">
           {submitStatus === 'success' ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full mx-auto flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div id="main-content" className="text-center py-8">
+              <div id="main-content" className="w-16 h-16 bg-green-100 rounded-full mx-auto flex items-center justify-center mb-4">
+                <svg aria-hidden="true" aria-hidden="true" className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -64,14 +64,14 @@ export default function ContactPage() {
                 Thank you for reaching out. We'll get back to you as soon as possible.
               </p>
               <button
-                onClick={() => setSubmitStatus('idle')}
+                onClick={() => setSubmitStatus('idle')} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                 className="py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
               >
                 Send another message
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form aria-label="Form" aria-label="Form" onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                   Name
@@ -80,7 +80,7 @@ export default function ContactPage() {
                   id="name"
                   name="name"
                   type="text"
-                  required
+                  required aria-required="true"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
@@ -96,7 +96,7 @@ export default function ContactPage() {
                   id="email"
                   name="email"
                   type="email"
-                  required
+                  required aria-required="true"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
@@ -112,7 +112,7 @@ export default function ContactPage() {
                   id="message"
                   name="message"
                   rows={4}
-                  required
+                  required aria-required="true"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
@@ -121,7 +121,7 @@ export default function ContactPage() {
               </div>
 
               {submitStatus === 'error' && (
-                <div className="text-red-500 text-sm text-center">
+                <div id="main-content" className="text-red-500 text-sm text-center">
                   Error sending message. Please try again.
                 </div>
               )}
@@ -139,21 +139,21 @@ export default function ContactPage() {
           )}
         </div>
 
-        <div className="mt-12 text-center">
+        <div id="main-content" className="mt-12 text-center">
           <h2 className="text-xl font-semibold text-primary mb-4">Other Ways to Reach Us</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <div className="text-primary mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div id="main-content" className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div id="main-content" className="bg-white p-4 rounded-lg shadow-sm">
+              <div id="main-content" className="text-primary mb-2">
+                <svg aria-hidden="true" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
               <h3 className="font-medium">Email</h3>
               <p className="text-sm text-muted-foreground">support@prolingo.com</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <div className="text-primary mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div id="main-content" className="bg-white p-4 rounded-lg shadow-sm">
+              <div id="main-content" className="text-primary mb-2">
+                <svg aria-hidden="true" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>

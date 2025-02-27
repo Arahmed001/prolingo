@@ -1,16 +1,26 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import acceptLanguage from 'accept-language'
-import { i18n } from './next-i18next.config.js'
 
-acceptLanguage.languages(i18n.locales)
+// Define supported locales
+const locales = ['en', 'es', 'fr']
+const defaultLocale = 'en'
+
+acceptLanguage.languages(locales)
 
 export function middleware(request: NextRequest) {
-  // Check if there is any supported locale in the pathname
-  const pathname = request.nextUrl.pathname
-  
-  // Check if there's already a locale in the pathname
-  const pathnameHasLocale = i18n.locales.some(
+  // Skip for API routes and static files
+  const { pathname } = request.nextUrl
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next()
+  }
+
+  // Check if the pathname already includes a locale
+  const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   )
 
@@ -18,21 +28,19 @@ export function middleware(request: NextRequest) {
 
   // Get the preferred locale from the cookie or accept-language header
   let locale
-  // Check in cookie
-  const preferredLocale = request.cookies.get('NEXT_LOCALE')?.value
-  if (preferredLocale && i18n.locales.includes(preferredLocale)) {
-    locale = preferredLocale
+  const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value
+  
+  if (cookieLocale && locales.includes(cookieLocale)) {
+    locale = cookieLocale
   } else {
-    // If no cookie, use accept-language header
-    locale = acceptLanguage.get(request.headers.get('accept-language'))
-    // If no accept-language header, use default locale
-    if (!locale) locale = i18n.defaultLocale
+    locale = acceptLanguage.get(request.headers.get('accept-language')) || defaultLocale
   }
 
-  // Redirect if locale is not in pathname
-  return NextResponse.redirect(
-    new URL(`/${locale}${pathname === '/' ? '' : pathname}${request.nextUrl.search}`, request.url)
-  )
+  // For App Router, we'll just set a cookie rather than redirecting
+  const response = NextResponse.next()
+  response.cookies.set('NEXT_LOCALE', locale)
+  
+  return response
 }
 
 export const config = {

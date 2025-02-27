@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, getDoc, doc, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, addDoc, serverTimestamp, query, where, orderBy, limit } from 'firebase/firestore';
 import { db, isFirebaseInitialized } from '../../../lib/firebase';
 import Header from '../../../app/components/Header';
 import Footer from '../../../app/components/Footer';
@@ -31,13 +31,38 @@ interface Assignment {
   teacherId: string;
 }
 
+interface Lesson {
+  id: string;
+  title: string;
+  level?: string;
+  difficulty?: string;
+  [key: string]: any;
+}
+
+interface LessonPlan {
+  id: string;
+  lessonId: string;
+  lessonTitle: string;
+  plan: string;
+  teacherId: string;
+  timestamp: any;
+}
+
+interface StudentProgress {
+  id: string;
+  userId: string;
+  lessonId: string;
+  score: number;
+  studentName?: string;
+}
+
 export default function TeacherDashboard() {
   return (
     <FirebaseGuard
       fallback={
         <div className="min-h-screen flex flex-col">
           <Header />
-          <main className="flex-grow bg-gray-50 py-8 flex items-center justify-center">
+          <main id="main-content" className="flex-grow bg-gray-50 py-8 flex items-center justify-center">
             <div className="text-center p-6 max-w-sm mx-auto">
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Teacher Dashboard</h2>
               <p className="text-gray-600">Please wait while we set up your dashboard...</p>
@@ -62,6 +87,15 @@ function TeacherDashboardContent() {
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [assignmentSuccess, setAssignmentSuccess] = useState(false);
+  const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
+  const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [selectedLessonId, setSelectedLessonId] = useState<string>('');
+  const [generatingPlan, setGeneratingPlan] = useState<boolean>(false);
+  const [formStatus, setFormStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
   const router = useRouter();
   const auth = getAuth();
 
@@ -79,6 +113,9 @@ function TeacherDashboardContent() {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists() && userDoc.data().role === 'teacher') {
             setIsTeacher(true);
+            fetchLessons();
+            fetchLessonPlans();
+            fetchStudentProgress();
           } else {
             // Redirect if not a teacher
             router.push('/login');
@@ -170,6 +207,84 @@ function TeacherDashboardContent() {
     fetchStudents();
   }, [isTeacher]);
 
+  // Fetch lesson plans from Firebase
+  const fetchLessonPlans = async () => {
+    try {
+      if (!user) return;
+      
+      const q = query(
+        collection(db, 'lesson-plans'),
+        where('teacherId', '==', user.uid),
+        orderBy('timestamp', 'desc'),
+        limit(5)
+      );
+      
+      const plansSnapshot = await getDocs(q);
+      const plansList = plansSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as LessonPlan[];
+      
+      setLessonPlans(plansList);
+    } catch (error) {
+      console.error('Error fetching lesson plans:', error);
+    }
+  };
+
+  // Fetch student progress from Firebase
+  const fetchStudentProgress = async () => {
+    try {
+      const progressCollection = collection(db, 'progress');
+      const progressSnapshot = await getDocs(progressCollection);
+      const progressList = progressSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as StudentProgress[];
+      
+      // Fetch student user data to display names
+      const enhancedProgress = await Promise.all(progressList.map(async (progress) => {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', progress.userId));
+          return {
+            ...progress,
+            studentName: userDoc.exists() ? userDoc.data().displayName || 'Unknown Student' : 'Unknown Student'
+          };
+        } catch (error) {
+          console.error('Error fetching student info:', error);
+          return {
+            ...progress,
+            studentName: 'Unknown Student'
+          };
+        }
+      }));
+      
+      setStudentProgress(enhancedProgress);
+    } catch (error) {
+      console.error('Error fetching student progress:', error);
+    }
+  };
+
+  // Fetch lessons from Firebase
+  const fetchLessons = async () => {
+    try {
+      const lessonsCollection = collection(db, 'lessons');
+      const lessonsSnapshot = await getDocs(lessonsCollection);
+      const lessonsList = lessonsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Lesson[];
+      
+      setLessons(lessonsList);
+      
+      // Set first lesson as default selection if available
+      if (lessonsList.length > 0 && !selectedLessonId) {
+        setSelectedLessonId(lessonsList[0].id);
+      }
+    } catch (error) {
+      console.error('Error fetching lessons:', error);
+    }
+  };
+
   // Handle student selection for assignment
   const handleStudentSelection = (studentId: string) => {
     setSelectedStudents(prev => {
@@ -256,6 +371,97 @@ function TeacherDashboardContent() {
     return Math.round((completed / total) * 100);
   };
 
+  // Generate a lesson plan based on selected lesson
+  const generateLessonPlan = async () => {
+    if (!selectedLessonId) {
+      setFormStatus({
+        type: 'error',
+        message: 'Please select a lesson first'
+      });
+      return;
+    }
+    
+    if (!user) {
+      setFormStatus({
+        type: 'error',
+        message: 'User authentication required aria-required="true"'
+      });
+      return;
+    }
+    
+    setGeneratingPlan(true);
+    setFormStatus({ type: null, message: '' });
+    
+    try {
+      // Find the selected lesson
+      const selectedLesson = lessons.find(lesson => lesson.id === selectedLessonId);
+      if (!selectedLesson) {
+        throw new Error('Selected lesson not found');
+      }
+      
+      // In a real application, this would call an AI service
+      // For now, we'll generate a static plan based on lesson properties
+      const activities = ['Vocabulary Flashcards', 'Conversation Practice', 'Grammar Exercise', 'Interactive Quiz'];
+      const randomActivities = activities
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 2 + Math.floor(Math.random() * 3)); // 2-4 random activities
+      
+      const duration = (30 + Math.floor(Math.random() * 4) * 10); // 30, 40, 50, or 60 minutes
+      
+      const plan = {
+        lessonId: selectedLessonId,
+        lessonTitle: selectedLesson.title,
+        plan: `Lesson: ${selectedLesson.title}
+Duration: ${duration} minutes
+Level: ${selectedLesson.level || 'A1'}
+Activities:
+${randomActivities.map((activity, index) => `${index + 1}. ${activity} (${Math.floor(duration / randomActivities.length)} min)`).join('\n')}
+
+Learning Objectives:
+- Master key vocabulary related to ${selectedLesson.title.toLowerCase()}
+- Practice conversational skills in realistic scenarios
+- Understand and apply grammar concepts appropriately`,
+        teacherId: user.uid,
+        timestamp: serverTimestamp()
+      };
+      
+      // Add the plan to Firebase
+      await addDoc(collection(db, 'lesson-plans'), plan);
+      
+      // Update local state with the new plan
+      setFormStatus({
+        type: 'success',
+        message: 'Lesson plan generated successfully!'
+      });
+      
+      // Refresh lesson plans
+      fetchLessonPlans();
+    } catch (error) {
+      console.error('Error generating lesson plan:', error);
+      setFormStatus({
+        type: 'error',
+        message: 'Error generating lesson plan. Please try again.'
+      });
+    } finally {
+      setGeneratingPlan(false);
+    }
+  };
+
+  // Generate AI insight for a student based on their score
+  const generateStudentInsight = (score: number, studentName: string) => {
+    if (score > 90) {
+      return `${studentName} is excelling and ready for more advanced content`;
+    } else if (score > 80) {
+      return `${studentName} is performing well but could benefit from more practice`;
+    } else if (score > 70) {
+      return `${studentName} needs additional review of key concepts`;
+    } else if (score > 60) {
+      return `${studentName} needs more speaking and grammar practice`;
+    } else {
+      return `${studentName} requires personalised attention and remedial lessons`;
+    }
+  };
+
   if (!isTeacher) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -271,10 +477,18 @@ function TeacherDashboardContent() {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-grow bg-gray-50 py-6 sm:py-8">
+      <main id="main-content" className="flex-grow bg-gray-50 py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6 sm:mb-8">
-            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
+              <button aria-label="Button" tabIndex={0}
+                onClick={toggleAddStudentModal} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+                className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Add Student
+              </button>
+            </div>
             <p className="mt-1 sm:mt-2 text-gray-600 text-sm sm:text-base">Manage your students and assign homework</p>
           </div>
           
@@ -288,7 +502,7 @@ function TeacherDashboardContent() {
               </div>
             )}
             
-            <form onSubmit={handleAssignHomework} className="space-y-3 sm:space-y-4">
+            <form aria-label="Form" onSubmit={handleAssignHomework} className="space-y-3 sm:space-y-4">
               <div>
                 <label htmlFor="lesson-id" className="block text-sm font-medium text-gray-700 mb-1">
                   Lesson ID
@@ -300,7 +514,7 @@ function TeacherDashboardContent() {
                   onChange={(e) => setLessonId(e.target.value)}
                   className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary text-sm sm:text-base"
                   placeholder="Enter lesson ID"
-                  required
+                  required aria-required="true"
                 />
               </div>
               
@@ -314,7 +528,7 @@ function TeacherDashboardContent() {
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                   className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary text-sm sm:text-base"
-                  required
+                  required aria-required="true"
                 />
               </div>
               
@@ -325,7 +539,7 @@ function TeacherDashboardContent() {
                   </label>
                   <button
                     type="button"
-                    onClick={handleSelectAllStudents}
+                    onClick={handleSelectAllStudents} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                     className="text-xs sm:text-sm text-primary hover:text-primary-dark"
                   >
                     {selectedStudents.length === students.length ? 'Deselect All' : 'Select All'}
@@ -406,6 +620,9 @@ function TeacherDashboardContent() {
                       <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Last Activity
                       </th>
+                      <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -440,6 +657,20 @@ function TeacherDashboardContent() {
                               : formatDate(student.progress.lastActivity)
                             }
                           </div>
+                        </td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <button aria-label="Button" tabIndex={0}
+                            onClick={() => handleDeleteStudent(student.id)} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+                            className="text-red-500 hover:text-red-700 transition-colors"
+                          >
+                            Delete
+                          </button>
+                          <button aria-label="Button" tabIndex={0}
+                            onClick={() => handleViewDetails(student)} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+                            className="text-primary hover:text-primary/80 transition-colors"
+                          >
+                            View Details
+                          </button>
                         </td>
                       </tr>
                     ))}

@@ -3,13 +3,7 @@
 import { useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
-// Make translation optional with a fallback for deployment
-let useTranslation;
-try {
-  useTranslation = require('next-i18next').useTranslation;
-} catch (e) {
-  useTranslation = () => ({ t: (key) => key });
-}
+import { useLanguage } from './components/I18nProvider';
 import { usePerformanceMonitoring } from '../lib/performance';
 
 interface Feature {
@@ -23,8 +17,8 @@ interface ClientHomePageProps {
 }
 
 export default function ClientHomePage({ features }: ClientHomePageProps) {
-  // Safely use translation with fallback
-  const { t } = typeof useTranslation === 'function' ? useTranslation('common') : { t: (key) => key };
+  // Use our custom language hook
+  const { t } = useLanguage();
   
   // Add performance monitoring
   usePerformanceMonitoring('/');
@@ -51,7 +45,7 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
                   {t('welcome') || 'Welcome'}
                 </h1>
                 <p className="mt-4 sm:mt-6 text-lg sm:text-xl text-white/80 max-w-lg">
-                  ProLingo combines artificial intelligence with linguistic expertise to deliver personalized language learning experiences.
+                  ProLingo combines artificial intelligence with linguistic expertise to deliver personalised language learning experiences.
                 </p>
                 <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-4">
                   <Link tabIndex={0} 

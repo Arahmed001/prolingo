@@ -1,6 +1,6 @@
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
+    <div id="main-content" className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white p-8 rounded-xl shadow-md">
           <h1 className="text-3xl font-bold text-primary mb-6">Privacy Policy</h1>
@@ -24,10 +24,10 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc pl-6 mb-4">
               <li>Provide, maintain, and improve our services</li>
-              <li>Personalize your learning experience</li>
+              <li>Personalise your learning experience</li>
               <li>Communicate with you about updates and new features</li>
-              <li>Monitor and analyze usage patterns and trends</li>
-              <li>Protect against unauthorized access and fraud</li>
+              <li>Monitor and analyse usage patterns and trends</li>
+              <li>Protect against unauthorised access and fraud</li>
             </ul>
             
             <h2 className="text-xl font-semibold text-primary mt-6 mb-3">3. Information Sharing</h2>
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
             
             <h2 className="text-xl font-semibold text-primary mt-6 mb-3">4. Data Security</h2>
             <p className="mb-4">
-              We implement appropriate technical and organizational measures to protect your personal information. 
+              We implement appropriate technical and organisational measures to protect your personal information. 
               However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot 
               guarantee absolute security.
             </p>

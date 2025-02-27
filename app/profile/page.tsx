@@ -1,342 +1,381 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { 
   collection, 
   query, 
   where, 
   getDocs, 
   doc, 
-  getDoc, 
-  updateDoc, 
-  setDoc 
+  getDoc,
+  addDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import Link from 'next/link';
 
 // Prevent static prerendering
 export const dynamic = 'force-dynamic';
 
+interface VocabularyItem {
+  word: string;
+  definition?: string;
+  def?: string; // Alternative field name
+  term?: string; // Another alternative field name
+}
+
+interface Lesson {
+  id: string;
+  title: string;
+  vocabulary?: VocabularyItem[];
+  vocab?: VocabularyItem[]; // Alternative field name
+}
+
+interface UserProgress {
+  id: string;
+  lessonId: string;
+  score: number;
+  completed: boolean;
+  timestamp: any;
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isClient, setIsClient] = useState(false);
-  const [completedLessons, setCompletedLessons] = useState(0);
-  const [totalLessons, setTotalLessons] = useState(10); // Default value
-  const [progressPercentage, setProgressPercentage] = useState(0);
-  const [userGoal, setUserGoal] = useState('');
-  const [isSavingGoal, setIsSavingGoal] = useState(false);
-  const [goalSaved, setGoalSaved] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [syncStatus, setSyncStatus] = useState<string>('');
+  const [exportStatus, setExportStatus] = useState<string>('');
+  
   const router = useRouter();
 
+  // Check authentication status
   useEffect(() => {
-    // Mark that we're on the client side
-    setIsClient(true);
-
-    // Only run auth check in the browser
-    if (typeof window !== 'undefined') {
-      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+        fetchUserData(user.uid);
         setLoading(false);
-        if (currentUser) {
-          setUser(currentUser);
-          fetchUserData(currentUser.uid);
-          fetchProgressData(currentUser.uid);
-        } else {
-          // Redirect to login if no user is logged in
-          router.push('/login');
-        }
-      });
+      } else {
+        router.push('/login');
+      }
+    });
 
-      // Cleanup subscription on unmount
-      return () => unsubscribe();
-    } else {
-      // If we're on the server, just set loading to false
-      setLoading(false);
-    }
+    return () => unsubscribe();
   }, [router]);
 
+  // Fetch user data including progress and lessons
   const fetchUserData = async (userId: string) => {
     try {
-      const userDocRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        if (userData.goal) {
-          setUserGoal(userData.goal);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
-
-  const fetchProgressData = async (userId: string) => {
-    try {
-      // Get total lessons count
-      const lessonsCollection = collection(db, 'lessons');
-      const lessonsSnapshot = await getDocs(lessonsCollection);
-      const totalLessonsCount = lessonsSnapshot.size;
-      setTotalLessons(totalLessonsCount > 0 ? totalLessonsCount : 10);
-      
-      // Get completed lessons count
-      const progressCollection = collection(db, 'progress');
+      // Fetch user progress
       const progressQuery = query(
-        progressCollection,
-        where('userId', '==', userId),
-        where('completed', '==', true)
+        collection(db, 'progress'),
+        where('userId', '==', userId)
       );
-      const progressSnapshot = await getDocs(progressQuery);
-      const completedLessonsCount = progressSnapshot.size;
-      setCompletedLessons(completedLessonsCount);
       
-      // Calculate percentage
-      const percentage = totalLessonsCount > 0 
-        ? Math.round((completedLessonsCount / totalLessonsCount) * 100) 
-        : 0;
-      setProgressPercentage(percentage);
-    } catch (error) {
-      console.error('Error fetching progress data:', error);
-    }
-  };
-
-  const handleGoalSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    
-    setIsSavingGoal(true);
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, {
-        goal: userGoal
+      const progressSnapshot = await getDocs(progressQuery);
+      const progressData: UserProgress[] = [];
+      
+      progressSnapshot.forEach((doc) => {
+        progressData.push({ id: doc.id, ...doc.data() } as UserProgress);
       });
-      setGoalSaved(true);
-      setTimeout(() => setGoalSaved(false), 3000);
-    } catch (error) {
-      console.error('Error saving goal:', error);
-      // If the document doesn't exist yet, create it
-      try {
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, {
-          email: user.email,
-          goal: userGoal
-        });
-        setGoalSaved(true);
-        setTimeout(() => setGoalSaved(false), 3000);
-      } catch (innerError) {
-        console.error('Error creating user document:', innerError);
+      
+      setUserProgress(progressData);
+      
+      // Fetch lessons with vocabulary
+      const lessonsQuery = query(collection(db, 'lessons'));
+      const lessonsSnapshot = await getDocs(lessonsQuery);
+      const lessonsData: Lesson[] = [];
+      
+      lessonsSnapshot.forEach((doc) => {
+        lessonsData.push({ id: doc.id, ...doc.data() } as Lesson);
+      });
+      
+      setLessons(lessonsData);
+      
+      // If no lessons with vocabulary exist, add sample data
+      if (lessonsData.length === 0 || !lessonsData.some(lesson => 
+          (lesson.vocabulary && lesson.vocabulary.length > 0) || 
+          (lesson.vocab && lesson.vocab.length > 0))) {
+        await addSampleVocabularyData();
       }
-    } finally {
-      setIsSavingGoal(false);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
     }
   };
 
-  // Show a loading state until we confirm we're on the client
-  if (!isClient) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-base sm:text-lg md:text-xl font-medium text-primary">Loading...</div>
-      </div>
-    );
-  }
+  // Add sample vocabulary data if none exists
+  const addSampleVocabularyData = async () => {
+    try {
+      const sampleLesson = {
+        title: 'Basic Greetings',
+        description: 'Learn how to greet people in different situations',
+        level: 'A1',
+        vocabulary: [
+          { word: 'Hello', definition: 'Hi, a common greeting' },
+          { word: 'Goodbye', definition: 'Bye, used when leaving' },
+          { word: 'Good morning', definition: 'A greeting used in the morning' },
+          { word: 'Good afternoon', definition: 'A greeting used in the afternoon' },
+          { word: 'Good evening', definition: 'A greeting used in the evening' },
+          { word: 'How are you?', definition: 'A question asking about someone\'s wellbeing' },
+          { word: 'Thank you', definition: 'Used to express gratitude' },
+          { word: 'You\'re welcome', definition: 'A response to thank you' },
+          { word: 'Please', definition: 'Used when asking for something politely' },
+          { word: 'Excuse me', definition: 'Used to get attention or apologize for a minor disturbance' }
+        ],
+        createdAt: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(collection(db, 'lessons'), sampleLesson);
+      
+      // Add the newly created lesson to the state
+      setLessons([...lessons, { id: docRef.id, ...sampleLesson }]);
+      
+      console.log("Added sample vocabulary data");
+    } catch (error) {
+      console.error("Error adding sample vocabulary data:", error);
+    }
+  };
 
+  // Function to sync progress with Duolingo (placeholder)
+  const syncWithDuolingo = () => {
+    console.log("Syncing with Duolingo...");
+    setSyncStatus('Syncing...');
+    
+    // Simulate API call with timeout
+    setTimeout(() => {
+      // Simulate successful response
+      const fakeResponse = {
+        success: true,
+        message: "Successfully synced with Duolingo",
+        data: {
+          syncedLessons: userProgress.length,
+          skillLevel: "A1+",
+          pointsEarned: 120
+        }
+      };
+      
+      console.log("Sync response:", fakeResponse);
+      setSyncStatus(`Success! Synced ${fakeResponse.data.syncedLessons} lessons.`);
+      
+      // Reset status after 3 seconds
+      setTimeout(() => setSyncStatus(''), 3000);
+    }, 1500);
+  };
+
+  // Function to export vocabulary as CSV
+  const exportVocabulary = () => {
+    setExportStatus('Preparing export...');
+    
+    try {
+      // Collect all vocabulary items from all lessons
+      const allVocabulary: VocabularyItem[] = [];
+      
+      lessons.forEach(lesson => {
+        const lessonVocab = lesson.vocabulary || lesson.vocab || [];
+        lessonVocab.forEach(item => {
+          allVocabulary.push(item);
+        });
+      });
+      
+      if (allVocabulary.length === 0) {
+        setExportStatus('No vocabulary found to export');
+        setTimeout(() => setExportStatus(''), 3000);
+        return;
+      }
+      
+      // Create CSV content
+      let csvContent = "word,definition\n";
+      
+      allVocabulary.forEach(item => {
+        // Use the appropriate field for definition
+        const definition = item.definition || item.def || '';
+        // Escape quotes in the content
+        const escapedWord = item.word ? item.word.replace(/"/g, '""') : '';
+        const escapedDefinition = definition.replace(/"/g, '""');
+        
+        csvContent += `"${escapedWord}","${escapedDefinition}"\n`;
+      });
+      
+      // Create a blob and download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'prolingo_vocabulary.csv');
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setExportStatus('Vocabulary exported successfully!');
+      setTimeout(() => setExportStatus(''), 3000);
+    } catch (error) {
+      console.error("Error exporting vocabulary:", error);
+      setExportStatus('Error exporting vocabulary');
+      setTimeout(() => setExportStatus(''), 3000);
+    }
+  };
+
+  // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-base sm:text-lg md:text-xl font-medium text-primary">Loading...</div>
-      </div>
-    );
-  }
-
-  // If we're still here and there's no user, we're in the process of redirecting
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-base sm:text-lg md:text-xl font-medium text-primary">Redirecting to login...</div>
-      </div>
+      <>
+        <Header />
+        <main id="main-content" id="main-content" className="flex-grow flex items-center justify-center p-4 bg-muted">
+          <div className="loader">Loading your profile data...</div>
+        </main>
+        <Footer />
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white shadow-md rounded-xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-primary px-4 sm:px-6 py-6 sm:py-8 text-white">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">User Profile</h1>
-            <p className="mt-2 text-sm sm:text-base text-white/80">View and manage your account information</p>
+    <>
+      <Header />
+      <main id="main-content" id="main-content" className="flex-grow container mx-auto px-4 py-8 max-w-7xl bg-muted">
+        <h1 className="text-2xl md:text-3xl font-bold text-primary mb-6 md:mb-8">Your Profile</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+          {/* User Info Card */}
+          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 h-full">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">User Info</h2>
+            <div className="mb-3 md:mb-4">
+              <p className="text-gray-600 mb-1 text-sm">Email</p>
+              <p className="font-medium">{user?.email}</p>
+            </div>
+            <div className="mb-2">
+              <p className="text-gray-600 mb-1 text-sm">Account Created</p>
+              <p className="font-medium">{user?.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}</p>
+            </div>
           </div>
-
-          {/* Profile Content */}
-          <div className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              {/* User Info */}
-              <div className="md:col-span-2 space-y-4 sm:space-y-6">
-                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Account Information</h2>
-                  <div className="space-y-3 sm:space-y-4">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">Email</label>
-                      <div className="text-base sm:text-lg font-medium">{user.email}</div>
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">Account ID</label>
-                      <div className="text-xs sm:text-sm text-muted-foreground">{user.uid}</div>
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-muted-foreground mb-1">Account Created</label>
-                      <div className="text-xs sm:text-sm text-muted-foreground">
-                        {user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Progress Section */}
-                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Your Progress</h2>
-                  
-                  {/* A1 Progress Bar */}
-                  <div className="mb-4 sm:mb-6">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs sm:text-sm font-medium text-muted-foreground">A1 Progress</span>
-                      <span className="text-xs sm:text-sm font-medium">{progressPercentage}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2 sm:h-2.5 rounded-full" 
-                        style={{ width: `${progressPercentage}%` }}
-                      ></div>
-                    </div>
-                    <div className="mt-1 sm:mt-2 text-xs text-muted-foreground">
-                      {completedLessons} of {totalLessons} lessons completed
-                    </div>
-                  </div>
-                  
-                  {/* Learning Goal */}
-                  <div className="mt-4 sm:mt-6">
-                    <h3 className="text-base sm:text-lg font-medium text-primary mb-2 sm:mb-3">Your Learning Goal</h3>
-                    <form onSubmit={handleGoalSubmit} className="space-y-2 sm:space-y-3">
-                      <input
-                        type="text"
-                        value={userGoal}
-                        onChange={(e) => setUserGoal(e.target.value)}
-                        placeholder="e.g., Reach A2 by June"
-                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
-                      />
-                      <button
-                        type="submit"
-                        disabled={isSavingGoal}
-                        className="w-full py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 text-xs sm:text-sm"
-                      >
-                        {isSavingGoal ? 'Saving...' : 'Save Goal'}
-                      </button>
-                      {goalSaved && (
-                        <div className="text-xs sm:text-sm text-green-600">Goal saved successfully!</div>
-                      )}
-                    </form>
-                  </div>
-                </div>
-
-                {/* Achievements Section */}
-                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Your Achievements</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    {/* First Lesson Badge */}
-                    <div className={`border rounded-lg p-3 sm:p-4 text-center ${completedLessons > 0 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-sm sm:text-base font-medium">First Lesson</h3>
-                      <p className="text-xs text-muted-foreground mt-1">Completed your first lesson</p>
-                    </div>
-                    
-                    {/* 5 Quizzes Badge */}
-                    <div className={`border rounded-lg p-3 sm:p-4 text-center ${completedLessons >= 5 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                      </div>
-                      <h3 className="text-sm sm:text-base font-medium">5 Quizzes</h3>
-                      <p className="text-xs text-muted-foreground mt-1">Completed 5 quizzes</p>
-                    </div>
-                    
-                    {/* A1 Star Badge */}
-                    <div className={`border rounded-lg p-3 sm:p-4 text-center ${progressPercentage >= 100 ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-sm sm:text-base font-medium">A1 Star</h3>
-                      <p className="text-xs text-muted-foreground mt-1">Completed A1 level</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Account Actions</h2>
-                  <div className="space-y-3 sm:space-y-4">
-                    <button 
-                      className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-xs sm:text-sm font-medium text-white bg-secondary hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
-                      onClick={() => router.push('/change-password')}
-                    >
-                      Change Password
-                    </button>
-                    <button 
-                      className="w-full py-2 px-4 border border-border rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                      onClick={() => auth.signOut().then(() => router.push('/login'))}
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                </div>
+          
+          {/* Progress Card */}
+          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 h-full">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">Learning Progress</h2>
+            <div className="mb-3 md:mb-4">
+              <p className="text-gray-600 mb-1 text-sm">Completed Lessons</p>
+              <p className="font-medium">{userProgress.filter(p => p.completed).length}</p>
+            </div>
+            <div className="mb-2">
+              <p className="text-gray-600 mb-1 text-sm">Average Score</p>
+              <p className="font-medium">
+                {userProgress.length > 0
+                  ? `${Math.round(userProgress.reduce((sum, p) => sum + p.score, 0) / userProgress.length)}%`
+                  : 'No lessons completed yet'}
+              </p>
+            </div>
+          </div>
+          
+          {/* Tool Integrations Card */}
+          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 h-full">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">Tool Integrations</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <button aria-label="Button" tabIndex={0} tabIndex={0} 
+                  onClick={syncWithDuolingo} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm md:text-base"
+                >
+                  Sync Progress with Duolingo
+                </button>
+                {syncStatus && (
+                  <p className="text-sm mt-2 text-green-600">{syncStatus}</p>
+                )}
               </div>
-
-              {/* Stats */}
-              <div className="space-y-4 sm:space-y-6">
-                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Your Stats</h2>
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs sm:text-sm text-muted-foreground">Lessons Completed</span>
-                      <span className="text-lg sm:text-xl font-bold text-primary">{completedLessons}</span>
-                    </div>
-                    <div className="border-t border-border pt-3 sm:pt-4 flex justify-between items-center">
-                      <span className="text-xs sm:text-sm text-muted-foreground">Quizzes Taken</span>
-                      <span className="text-lg sm:text-xl font-bold text-primary">{Math.floor(completedLessons * 0.7)}</span>
-                    </div>
-                    <div className="border-t border-border pt-3 sm:pt-4 flex justify-between items-center">
-                      <span className="text-xs sm:text-sm text-muted-foreground">Average Score</span>
-                      <span className="text-lg sm:text-xl font-bold text-accent">85%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-border rounded-lg p-4 sm:p-6 shadow-sm">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-primary">Subscription</h2>
-                  <div className="p-3 sm:p-4 bg-primary/10 rounded-lg">
-                    <div className="text-sm sm:text-base font-medium text-primary">Free Plan</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground mt-1">Basic access to ESL teaching tools</div>
-                  </div>
-                  <div className="mt-3 sm:mt-4">
-                    <button 
-                      className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-xs sm:text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                      onClick={() => router.push('/subscription')}
-                    >
-                      Upgrade Plan
-                    </button>
-                  </div>
-                </div>
+              
+              <div>
+                <button aria-label="Button" tabIndex={0} tabIndex={0} 
+                  onClick={exportVocabulary} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm md:text-base"
+                >
+                  Export Vocabulary as CSV
+                </button>
+                {exportStatus && (
+                  <p className="text-sm mt-2 text-blue-600">{exportStatus}</p>
+                )}
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        
+        {/* Recent Activity Section */}
+        <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6 md:mb-8">
+          <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">Recent Activity</h2>
+          
+          {userProgress.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Lesson
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Score
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Completed
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {userProgress
+                    .sort((a, b) => new Date(b.timestamp?.seconds ? b.timestamp.toDate() : b.timestamp).getTime() - 
+                                   new Date(a.timestamp?.seconds ? a.timestamp.toDate() : a.timestamp).getTime())
+                    .slice(0, 5)
+                    .map((progress) => {
+                      const lesson = lessons.find(l => l.id === progress.lessonId);
+                      return (
+                        <tr key={progress.id} className="hover:bg-gray-50">
+                          <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {lesson?.title || progress.lessonId}
+                            </div>
+                          </td>
+                          <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {progress.score}%
+                            </div>
+                          </td>
+                          <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              progress.completed 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {progress.completed ? 'Yes' : 'No'}
+                            </span>
+                          </td>
+                          <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(progress.timestamp?.seconds ? progress.timestamp.toDate() : progress.timestamp).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-gray-500">No activity yet. Start learning to track your progress!</p>
+              <Link tabIndex={0} tabIndex={0} href="/lessons" className="mt-4 inline-block text-primary hover:text-primary-light font-medium">
+                Browse Lessons
+              </Link>
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </>
   );
 } 

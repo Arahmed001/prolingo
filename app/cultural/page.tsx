@@ -100,12 +100,12 @@ export default function CulturalInsightsPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-grow bg-gray-50 py-12">
+      <main id="main-content" id="main-content" className="flex-grow bg-gray-50 py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold text-center text-gray-900 mb-12">Cultural Insights</h1>
           
           {/* Cultural Insights Cards */}
-          <section className="mb-16">
+          <section aria-labelledby="section-heading" className="mb-16">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Explore Cultural Nuances</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {culturalInsights.map((insight) => (
@@ -132,7 +132,7 @@ export default function CulturalInsightsPage() {
           </section>
           
           {/* Comprehension Quiz */}
-          <section className="bg-white rounded-lg shadow-md p-6 mb-12">
+          <section aria-labelledby="section-heading" className="bg-white rounded-lg shadow-md p-6 mb-12">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Cultural Comprehension Quiz</h2>
             
             {!showResults ? (
@@ -153,7 +153,7 @@ export default function CulturalInsightsPage() {
                             ? 'bg-blue-50 border-blue-500'
                             : 'hover:bg-gray-50 border-gray-200'
                         }`}
-                        onClick={() => handleSelectAnswer(quizQuestions[currentQuestion].id, option.id)}
+                        onClick={() => handleSelectAnswer(quizQuestions[currentQuestion].id, option.id)} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                       >
                         <label className="flex items-center cursor-pointer">
                           <input
@@ -171,7 +171,7 @@ export default function CulturalInsightsPage() {
                 
                 <div className="flex justify-between">
                   <button
-                    onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+                    onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                     disabled={currentQuestion === 0}
                     className={`px-4 py-2 rounded-md ${
                       currentQuestion === 0
@@ -184,7 +184,7 @@ export default function CulturalInsightsPage() {
                   
                   {currentQuestion < quizQuestions.length - 1 ? (
                     <button
-                      onClick={() => setCurrentQuestion(currentQuestion + 1)}
+                      onClick={() => setCurrentQuestion(currentQuestion + 1)} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                       disabled={!selectedAnswers[quizQuestions[currentQuestion].id]}
                       className={`px-4 py-2 rounded-md ${
                         !selectedAnswers[quizQuestions[currentQuestion].id]
@@ -196,7 +196,7 @@ export default function CulturalInsightsPage() {
                     </button>
                   ) : (
                     <button
-                      onClick={handleSubmitQuiz}
+                      onClick={handleSubmitQuiz} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                       disabled={!Object.keys(selectedAnswers).length || Object.keys(selectedAnswers).length < quizQuestions.length}
                       className={`px-4 py-2 rounded-md ${
                         !Object.keys(selectedAnswers).length || Object.keys(selectedAnswers).length < quizQuestions.length
@@ -232,12 +232,12 @@ export default function CulturalInsightsPage() {
                 
                 <div className="flex justify-center space-x-4">
                   <button
-                    onClick={handleResetQuiz}
+                    onClick={handleResetQuiz} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
                     Try Again
                   </button>
-                  <Link href="/" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                  <Link tabIndex={0} tabIndex={0} href="/" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
                     Back to Home
                   </Link>
                 </div>

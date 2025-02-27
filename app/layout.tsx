@@ -6,8 +6,6 @@ import Header from './components/Header'
 import AccessibilityProvider from './components/AccessibilityProvider'
 import DataInitializer from './components/DataInitializer'
 import I18nProvider from './components/I18nProvider'
-import { appWithTranslation } from 'next-i18next'
-import nextI18nConfig from '../next-i18next.config.js'
 
 const poppins = Poppins({
   subsets: ['latin'],

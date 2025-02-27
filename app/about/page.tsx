@@ -22,7 +22,7 @@ export default function AboutPage() {
   const features = [
     {
       title: "AI Lessons",
-      description: "Personalized content that adapts to your learning style and progress, focusing on areas where you need the most practice.",
+      description: "Personalised content that adapts to your learning style and progress, focusing on areas where you need the most practice.",
       icon: "computer"
     },
     {

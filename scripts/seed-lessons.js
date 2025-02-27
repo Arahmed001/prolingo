@@ -253,7 +253,7 @@ const lessons = [
       <p>Common ways to travel:</p>
       <ul>
         <li><strong>Car</strong> - "I drive my car to work."</li>
-        <li><strong>Bus</strong> - "I take the bus to the city center."</li>
+        <li><strong>Bus</strong> - "I take the bus to the city centre."</li>
         <li><strong>Train</strong> - "The train is faster than the bus."</li>
         <li><strong>Subway/Underground</strong> - "The subway is a good way to avoid traffic."</li>
         <li><strong>Bicycle</strong> - "I ride my bicycle when the weather is nice."</li>

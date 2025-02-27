@@ -15,8 +15,8 @@ export default function DashboardPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted">
-      <div className="text-base sm:text-lg md:text-xl font-medium text-primary">Redirecting to profile...</div>
+    <div id="main-content" className="min-h-screen flex items-center justify-center bg-muted">
+      <div id="main-content" className="text-base sm:text-lg md:text-xl font-medium text-primary">Redirecting to profile...</div>
     </div>
   );
 } 

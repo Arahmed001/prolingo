@@ -180,10 +180,10 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+    <div id="main-content" className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
+      <div id="main-content" className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div id="main-content" className="text-center mb-12">
           <h1 className="text-4xl font-bold text-primary mb-4">Leaderboard</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             See how you rank against other ProLingo learners. Keep practicing to climb the ranks!
@@ -191,14 +191,14 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Leaderboard Table */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+        <div id="main-content" className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
           {loading ? (
-            <div className="p-8 text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+            <div id="main-content" className="p-8 text-center">
+              <div id="main-content" className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
               <p className="mt-4 text-muted-foreground">Loading leaderboard data...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div id="main-content" className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -221,8 +221,8 @@ export default function LeaderboardPage() {
                     return (
                       <tr key={user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className={`
+                          <div id="main-content" className="flex items-center">
+                            <div id="main-content" className={`
                               flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-white font-medium
                               ${rank === 1 ? 'bg-yellow-500' : 
                                 rank === 2 ? 'bg-gray-400' : 
@@ -233,12 +233,12 @@ export default function LeaderboardPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div id="main-content" className="text-sm font-medium text-gray-900">
                             {user.email.split('@')[0]}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-bold text-primary">
+                          <div id="main-content" className="text-sm font-bold text-primary">
                             {user.score.toLocaleString()}
                           </div>
                         </td>
@@ -260,13 +260,13 @@ export default function LeaderboardPage() {
           )}
           
           {/* Pagination */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
+          <div id="main-content" className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <div id="main-content" className="text-sm text-gray-700">
               Page {currentPage}
             </div>
-            <div className="flex space-x-2">
+            <div id="main-content" className="flex space-x-2">
               <button
-                onClick={handlePrevPage}
+                onClick={handlePrevPage} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                 disabled={currentPage <= 1}
                 className={`px-4 py-2 border rounded-md text-sm font-medium ${
                   currentPage <= 1
@@ -277,7 +277,7 @@ export default function LeaderboardPage() {
                 Prev
               </button>
               <button
-                onClick={handleNextPage}
+                onClick={handleNextPage} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
                 className="px-4 py-2 border border-primary rounded-md text-sm font-medium text-primary hover:bg-primary/10"
               >
                 Next
@@ -287,9 +287,9 @@ export default function LeaderboardPage() {
         </div>
         
         {/* Info Section */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <div id="main-content" className="bg-white rounded-xl shadow-md overflow-hidden p-6">
           <h2 className="text-2xl font-bold text-primary mb-4">How Scoring Works</h2>
-          <div className="space-y-4">
+          <div id="main-content" className="space-y-4">
             <p className="text-muted-foreground">
               Your score is calculated based on several factors:
             </p>

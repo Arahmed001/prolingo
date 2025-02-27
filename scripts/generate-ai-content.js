@@ -53,7 +53,7 @@ const TOPICS = [
   // Proficient topics
   { topic: 'Philosophy and Ethics', level: 'Proficient' },
   { topic: 'Literature and Writing', level: 'Proficient' },
-  { topic: 'Psychology and Human Behavior', level: 'Proficient' },
+  { topic: 'Psychology and Human Behaviour', level: 'Proficient' },
   { topic: 'Politics and Government', level: 'Proficient' },
   { topic: 'History and Civilization', level: 'Proficient' }
 ];

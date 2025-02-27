@@ -33,7 +33,7 @@ const nextConfig = {
     domains: ['images.unsplash.com'],
     unoptimized: true,
   },
-  i18n,
+  // i18n is removed as it's not compatible with the App Router
   
   // Add webpack config to resolve module issues with i18next and Chart.js
   webpack: (config, { isServer }) => {

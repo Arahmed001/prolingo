@@ -52,7 +52,7 @@ export default function TestAPIPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main id="main-content" id="main-content" className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">API Test Page</h1>
         
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">

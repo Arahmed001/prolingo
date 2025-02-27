@@ -174,5 +174,5 @@ If generated content doesn't meet quality standards:
 Planned improvements include:
 - User feedback integration to improve content quality
 - More sophisticated content scheduling based on user engagement
-- Personalized content generation based on user learning patterns
+- Personalised content generation based on user learning patterns
 - Multi-language support for content generation 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function AccessibilityPage() {
   const [fontSize, setFontSize] = useState(16);
@@ -45,93 +46,112 @@ export default function AccessibilityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Accessibility Settings</h1>
-          <p className="text-muted-foreground">
-            Customize your experience to make the site more accessible for your needs.
+    <main id="main-content" className="min-h-screen bg-gray-50 py-12">
+      <div className="container mx-auto max-w-4xl px-4 sm:px-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Accessibility at ProLingo</h1>
+        
+        <section aria-labelledby="commitment-heading" className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h2 id="commitment-heading" className="text-xl font-semibold text-gray-900 mb-4">Our Commitment</h2>
+          <p className="text-gray-700 mb-4">
+            At ProLingo, we are committed to ensuring our platform is accessible to all users, including those with disabilities. 
+            We strive to comply with WCAG 2.1 guidelines and continuously work to improve the accessibility of our services.
           </p>
-        </div>
-
-        <div className="bg-white p-8 rounded-xl shadow-md">
-          <div className="space-y-8">
-            {/* Font Size Control */}
+          <p className="text-gray-700">
+            Our development team follows best practices for creating accessible web applications, including proper semantic HTML, 
+            ARIA attributes, keyboard navigation support, and color contrast compliance.
+          </p>
+        </section>
+        
+        <section aria-labelledby="features-heading" className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h2 id="features-heading" className="text-xl font-semibold text-gray-900 mb-4">Accessibility Features</h2>
+          <ul className="space-y-3 text-gray-700 list-disc pl-5">
+            <li>Skip to content links to bypass navigation</li>
+            <li>Keyboard navigation support throughout the application</li>
+            <li>Screen reader friendly content with proper ARIA attributes</li>
+            <li>Sufficient color contrast for text visibility</li>
+            <li>Responsive design that supports zoom up to 200%</li>
+            <li>Text alternatives for non-text content</li>
+            <li>Clear form labels and error messages</li>
+            <li>Consistent and predictable navigation</li>
+          </ul>
+        </section>
+        
+        <section aria-labelledby="resources-heading" className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h2 id="resources-heading" className="text-xl font-semibold text-gray-900 mb-4">Accessibility Resources</h2>
+          <div className="space-y-4">
             <div>
-              <h2 className="text-xl font-semibold text-primary mb-4">Font Size</h2>
-              <div className="mb-2 flex justify-between">
-                <span className="text-sm">Small</span>
-                <span className="text-sm font-medium">{fontSize}px</span>
-                <span className="text-sm">Large</span>
-              </div>
-              <input
-                type="range"
-                min="12"
-                max="24"
-                step="1"
-                value={fontSize}
-                onChange={handleFontSizeChange}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="mt-4 p-4 border border-border rounded-md">
-                <p className="text-muted-foreground">
-                  This is a preview of how text will appear with your selected font size.
-                </p>
-              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">For Users</h3>
+              <ul className="space-y-2 text-gray-700 list-disc pl-5">
+                <li>
+                  <Link href="/help/accessibility" className="text-primary hover:underline" tabIndex={0}>
+                    How to use ProLingo with a screen reader
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help/keyboard-shortcuts" className="text-primary hover:underline" tabIndex={0}>
+                    Keyboard shortcuts guide
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help/customize-display" className="text-primary hover:underline" tabIndex={0}>
+                    Display customization options
+                  </Link>
+                </li>
+              </ul>
             </div>
-
-            {/* Contrast Control */}
+            
             <div>
-              <h2 className="text-xl font-semibold text-primary mb-4">Contrast</h2>
-              <div className="flex items-center">
-                <button
-                  onClick={toggleContrast}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                    highContrast ? 'bg-primary' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      highContrast ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-                <span className="ml-3 text-sm font-medium">
-                  {highContrast ? 'High Contrast' : 'Normal Contrast'}
-                </span>
-              </div>
-              <div className="mt-4 p-4 border border-border rounded-md">
-                <p className="text-muted-foreground">
-                  High contrast mode provides better readability with white background and black text.
-                </p>
-              </div>
-            </div>
-
-            {/* Reset Button */}
-            <div className="pt-4 border-t border-border">
-              <button
-                onClick={() => {
-                  setFontSize(16);
-                  setHighContrast(false);
-                  document.documentElement.style.fontSize = '16px';
-                  document.body.classList.remove('high-contrast');
-                  localStorage.setItem('accessibility-font-size', '16');
-                  localStorage.setItem('accessibility-high-contrast', 'false');
-                }}
-                className="py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                Reset to Defaults
-              </button>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">For Developers</h3>
+              <ul className="space-y-2 text-gray-700 list-disc pl-5">
+                <li>
+                  <Link href="/accessibility/component-guide" className="text-primary hover:underline" tabIndex={0}>
+                    Accessible component examples
+                  </Link>
+                </li>
+                <li>
+                  <a 
+                    href="https://github.com/prolingo/accessibility" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-primary hover:underline"
+                    tabIndex={0}
+                  >
+                    Our accessibility documentation on GitHub
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
-        </div>
-
-        <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>
-            These settings will be saved and applied whenever you visit our site on this device.
+        </section>
+        
+        <section aria-labelledby="feedback-heading" className="bg-white rounded-lg shadow-sm p-6">
+          <h2 id="feedback-heading" className="text-xl font-semibold text-gray-900 mb-4">Feedback and Support</h2>
+          <p className="text-gray-700 mb-4">
+            We welcome your feedback on the accessibility of ProLingo. Please let us know if you encounter any barriers 
+            to accessing our content or functionality.
           </p>
-        </div>
+          <div className="flex flex-col sm:flex-row sm:space-x-4">
+            <Link 
+              href="/contact?subject=Accessibility"
+              className="btn-primary text-center mb-3 sm:mb-0"
+              tabIndex={0}
+              role="button"
+              aria-label="Contact us about accessibility"
+            >
+              Contact Us
+            </Link>
+            <Link 
+              href="/help/request"
+              className="btn-secondary text-center"
+              tabIndex={0}
+              role="button"
+              aria-label="Request accessibility assistance"
+            >
+              Request Assistance
+            </Link>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 } 

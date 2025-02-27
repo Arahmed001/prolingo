@@ -1,6 +1,6 @@
 export default function ResourcesPage() {
   return (
-    <div className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
+    <div id="main-content" className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-primary mb-4">Resources</h1>
@@ -16,9 +16,9 @@ export default function ResourcesPage() {
             <p className="text-muted-foreground mb-4">
               Comprehensive guides on various ESL teaching methodologies and best practices.
             </p>
-            <a href="#" className="text-secondary hover:text-secondary/80 font-medium">
+            <a tabIndex={0} href="#" className="text-secondary hover:text-secondary/80 font-medium">
               Browse Guides 
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </a>
@@ -29,9 +29,9 @@ export default function ResourcesPage() {
             <p className="text-muted-foreground mb-4">
               Printable worksheets for various language skills and proficiency levels.
             </p>
-            <a href="#" className="text-secondary hover:text-secondary/80 font-medium">
+            <a tabIndex={0} href="#" className="text-secondary hover:text-secondary/80 font-medium">
               Download Worksheets 
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </a>
@@ -42,9 +42,9 @@ export default function ResourcesPage() {
             <p className="text-muted-foreground mb-4">
               Step-by-step video guides on using ProLingo features effectively.
             </p>
-            <a href="#" className="text-secondary hover:text-secondary/80 font-medium">
+            <a tabIndex={0} href="#" className="text-secondary hover:text-secondary/80 font-medium">
               Watch Videos 
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </a>
@@ -55,9 +55,9 @@ export default function ResourcesPage() {
             <p className="text-muted-foreground mb-4">
               Recorded and upcoming webinars on ESL teaching topics and platform updates.
             </p>
-            <a href="#" className="text-secondary hover:text-secondary/80 font-medium">
+            <a tabIndex={0} href="#" className="text-secondary hover:text-secondary/80 font-medium">
               Join Webinars 
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </a>
@@ -72,7 +72,7 @@ export default function ResourcesPage() {
               <h3 className="text-lg font-semibold text-primary mb-2">How do I create my first lesson?</h3>
               <p className="text-muted-foreground">
                 To create your first lesson, navigate to the Lessons section and click on "Create New Lesson." 
-                Follow the step-by-step guide to generate a customized lesson plan based on your requirements.
+                Follow the step-by-step guide to generate a customised lesson plan based on your requirements.
               </p>
             </div>
             

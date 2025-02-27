@@ -1,11 +1,11 @@
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white p-8 rounded-xl shadow-md">
+    <div id="main-content" className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
+      <div id="main-content" className="max-w-4xl mx-auto">
+        <div id="main-content" className="bg-white p-8 rounded-xl shadow-md">
           <h1 className="text-3xl font-bold text-primary mb-6">Terms of Service</h1>
           
-          <div className="prose prose-sm max-w-none text-muted-foreground">
+          <div id="main-content" className="prose prose-sm max-w-none text-muted-foreground">
             <p className="mb-4">
               These are the terms and conditions governing your use of ProLingo, an AI-powered ESL learning platform. 
               By accessing or using our services, you agree to be bound by these terms.

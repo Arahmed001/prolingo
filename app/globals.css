@@ -148,4 +148,23 @@
   .responsive-flex {
     @apply flex flex-col sm:flex-row items-center;
   }
+  
+  /* Loader animation */
+  .loader {
+    @apply inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm text-white transition ease-in-out duration-150 relative;
+    background-color: rgb(var(--primary));
+    border-radius: 0.375rem;
+  }
+  
+  .loader:before {
+    content: '';
+    @apply absolute h-5 w-5 rounded-full border-2 border-t-transparent animate-spin mr-3;
+    border-color: white;
+    border-top-color: transparent;
+    left: 0.75rem;
+  }
+  
+  .loader {
+    padding-left: 2.5rem;
+  }
 }
