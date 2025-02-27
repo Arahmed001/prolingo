@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "node ./scripts/fix-dependencies.js && npm run build",
   "devCommand": "npm run dev",
-  "installCommand": "yarn install --network-timeout 100000 --frozen-lockfile",
+  "installCommand": "yarn install --network-timeout 100000",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "env": {

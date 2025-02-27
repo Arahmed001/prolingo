@@ -15,7 +15,7 @@
     "test:coverage": "jest --coverage",
     "download-audio": "node scripts/download-audio.js",
     "setup-ai-insights": "node scripts/setup-ai-insights.js",
-    "postinstall": "yarn add --force next-i18next react-chartjs-2 chart.js && node ./scripts/fix-dependencies.js"
+    "postinstall": "yarn add --force next-i18next react-chartjs-2 chart.js"
   },
   "dependencies": {
     "@sentry/nextjs": "^7.93.0",
