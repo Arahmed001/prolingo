@@ -456,6 +456,7 @@ const renderFlagImage = (language: string, altText: string) => (
       loading="lazy"
       placeholder="blur"
       blurDataURL={flagImagePlaceholders[language.toLowerCase()] || flagImagePlaceholders.english}
+      unoptimized={true}
     />
   </div>
 ); 

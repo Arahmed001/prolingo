@@ -6,24 +6,59 @@ import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-// Directly import the charts for now (we'll use client components for optimization)
-import { Line, Pie } from 'react-chartjs-2';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { usePerformanceMonitoring } from '../../lib/performance';
 
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+// Dynamically import Chart.js components with error handling
+let ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement;
+let Line, Pie;
+
+try {
+  // Import Chart.js components
+  const chartJs = require('chart.js');
+  ChartJS = chartJs.Chart;
+  CategoryScale = chartJs.CategoryScale;
+  LinearScale = chartJs.LinearScale;
+  PointElement = chartJs.PointElement;
+  LineElement = chartJs.LineElement;
+  Title = chartJs.Title;
+  Tooltip = chartJs.Tooltip;
+  Legend = chartJs.Legend;
+  ArcElement = chartJs.ArcElement;
+  
+  // Register Chart.js components if they exist
+  if (ChartJS) {
+    ChartJS.register(
+      CategoryScale,
+      LinearScale,
+      PointElement,
+      LineElement,
+      Title,
+      Tooltip,
+      Legend,
+      ArcElement
+    );
+  }
+  
+  // Import chart components
+  const chartComponents = require('react-chartjs-2');
+  Line = chartComponents.Line;
+  Pie = chartComponents.Pie;
+} catch (error) {
+  console.error('Error loading chart libraries:', error);
+  // Create placeholder components if the libraries fail to load
+  Line = ({ data, options }) => (
+    <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+      <p>Chart visualization not available</p>
+    </div>
+  );
+  Pie = ({ data, options }) => (
+    <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+      <p>Chart visualization not available</p>
+    </div>
+  );
+}
 
 // We use client-only rendering to avoid SSR issues with charts
 export const runtimeConfig = {
@@ -237,6 +272,7 @@ export default function AnalyticsPage() {
   };
 
   const calculateAverageScore = (data: ProgressEntry[]): number => {
+    if (data.length === 0) return 0;
     const total = data.reduce((sum, entry) => sum + entry.score, 0);
     return Math.round(total / data.length);
   };
@@ -258,13 +294,28 @@ export default function AnalyticsPage() {
     });
 
     // Find best time of day
-    const bestHour = Array.from(hourlyActivity.entries())
-      .sort((a, b) => b[1] - a[1])[0][0];
+    let bestHour = 12; // Default to noon
+    let maxHourlyActivity = 0;
+    
+    hourlyActivity.forEach((count, hour) => {
+      if (count > maxHourlyActivity) {
+        bestHour = hour;
+        maxHourlyActivity = count;
+      }
+    });
+    
     const bestTimeOfDay = `${bestHour}:00 - ${bestHour + 1}:00`;
 
     // Find most productive day
-    const mostProductiveDay = Array.from(dayActivity.entries())
-      .sort((a, b) => b[1] - a[1])[0][0];
+    let mostProductiveDay = 'Monday'; // Default
+    let maxDayActivity = 0;
+    
+    dayActivity.forEach((count, day) => {
+      if (count > maxDayActivity) {
+        mostProductiveDay = day;
+        maxDayActivity = count;
+      }
+    });
 
     // Calculate consistency score (0-100)
     const daysWithActivity = new Set(data.map(entry => 
@@ -275,7 +326,7 @@ export default function AnalyticsPage() {
     return {
       bestTimeOfDay,
       mostProductiveDay,
-      averageSessionLength: Math.round(totalSessionLength / data.length),
+      averageSessionLength: Math.round(totalSessionLength / Math.max(1, data.length)),
       consistencyScore
     };
   };
@@ -309,6 +360,10 @@ export default function AnalyticsPage() {
   };
 
   const generateDetailedPrediction = (data: ProgressEntry[]): string => {
+    if (data.length === 0) {
+      return "Start practicing to see your learning predictions.";
+    }
+    
     const recentProgress = data.slice(-14); // Last 2 weeks
     const avgScore = calculateAverageScore(recentProgress);
     const consistency = new Set(recentProgress.map(e => e.date.toDateString())).size / 14;
@@ -337,7 +392,7 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main id="main-content" id="main-content" className="flex-grow flex items-center justify-center">
+        <main id="main-content" className="flex-grow flex items-center justify-center">
           <div aria-live="polite" className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </main>
         <Footer />
@@ -353,6 +408,7 @@ export default function AnalyticsPage() {
     );
   }
 
+  // Prepare chart data - with fallback if charts can't be rendered
   const lineChartData = {
     labels: dailyProgress.map(d => d.date),
     datasets: [
@@ -381,10 +437,37 @@ export default function AnalyticsPage() {
     ]
   };
 
+  // Chart options with sensible defaults
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
+      }
+    },
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const dataPoint = dailyProgress[context.dataIndex];
+            return dataPoint ? [
+              `Completions: ${dataPoint.completions}`,
+              `Average Score: ${dataPoint.averageScore}%`
+            ] : [];
+          }
+        }
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main id="main-content" id="main-content" className="flex-grow bg-gray-50 py-8">
+      <main id="main-content" className="flex-grow bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">Learning Analytics</h1>
 
@@ -427,34 +510,16 @@ export default function AnalyticsPage() {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Learning Progress</h2>
               <div className="h-[400px]">
-                <Line
-                  data={lineChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          stepSize: 1
-                        }
-                      }
-                    },
-                    plugins: {
-                      tooltip: {
-                        callbacks: {
-                          label: (context) => {
-                            const dataPoint = dailyProgress[context.dataIndex];
-                            return [
-                              `Completions: ${dataPoint.completions}`,
-                              `Average Score: ${dataPoint.averageScore}%`
-                            ];
-                          }
-                        }
-                      }
-                    }
-                  }}
-                />
+                {Line ? (
+                  <Line
+                    data={lineChartData}
+                    options={chartOptions}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+                    <p>Chart visualization not available</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -497,18 +562,24 @@ export default function AnalyticsPage() {
                 ))}
               </div>
               <div className="h-[300px]">
-                <Pie
-                  data={pieChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: 'bottom'
+                {Pie ? (
+                  <Pie
+                    data={pieChartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'bottom'
+                        }
                       }
-                    }
-                  }}
-                />
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+                    <p>Chart visualization not available</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

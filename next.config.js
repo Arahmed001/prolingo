@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const { i18n } = require('./next-i18next.config.js');
+
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
@@ -25,7 +27,27 @@ const nextConfig = {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
-  }
+  },
+  // Configure allowed image domains
+  images: {
+    domains: ['images.unsplash.com'],
+    unoptimized: true,
+  },
+  i18n,
+  
+  // Add webpack config to resolve module issues with i18next and Chart.js
+  webpack: (config, { isServer }) => {
+    // Fix for next-i18next
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+      };
+    }
+    
+    return config;
+  },
 }
 
 module.exports = nextConfig

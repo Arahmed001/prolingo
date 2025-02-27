@@ -3,7 +3,13 @@
 import { useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslation } from "next-i18next";
+// Make translation optional with a fallback for deployment
+let useTranslation;
+try {
+  useTranslation = require('next-i18next').useTranslation;
+} catch (e) {
+  useTranslation = () => ({ t: (key) => key });
+}
 import { usePerformanceMonitoring } from '../lib/performance';
 
 interface Feature {
@@ -17,7 +23,8 @@ interface ClientHomePageProps {
 }
 
 export default function ClientHomePage({ features }: ClientHomePageProps) {
-  const { t } = useTranslation('common');
+  // Safely use translation with fallback
+  const { t } = typeof useTranslation === 'function' ? useTranslation('common') : { t: (key) => key };
   
   // Add performance monitoring
   usePerformanceMonitoring('/');
@@ -41,7 +48,7 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
                   CEFR-Aligned Language Learning
                 </div>
                 <h1 id="hero-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight md:leading-tight">
-                  {t('welcome')}
+                  {t('welcome') || 'Welcome'}
                 </h1>
                 <p className="mt-4 sm:mt-6 text-lg sm:text-xl text-white/80 max-w-lg">
                   ProLingo combines artificial intelligence with linguistic expertise to deliver personalized language learning experiences.
@@ -53,7 +60,7 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
                     role="button"
                     aria-label="Get started with ProLingo"
                   >
-                    {t('startLearning')}
+                    {t('startLearning') || 'Start Learning'}
                   </Link>
                   <Link tabIndex={0} 
                     href="/about" 
@@ -61,7 +68,7 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
                     role="button"
                     aria-label="Learn more about ProLingo"
                   >
-                    {t('about')}
+                    {t('about') || 'About'}
                   </Link>
                 </div>
               </div>
@@ -75,6 +82,7 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
                     className="object-contain"
                     loading="lazy"
                     priority={false}
+                    unoptimized={true}
                   />
                 </div>
               </div>
@@ -87,7 +95,7 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
           <div className="container mx-auto max-w-7xl">
             <div className="text-center mb-12 sm:mb-16">
               <h2 id="features-heading" className="text-3xl sm:text-4xl font-bold text-gray-900">
-                {t('features')}
+                {t('features') || 'Features'}
               </h2>
               <p className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto">
                 Our AI-powered platform offers everything you need to master a new language effectively.
