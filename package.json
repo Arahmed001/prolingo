@@ -15,7 +15,7 @@
     "test:coverage": "jest --coverage",
     "download-audio": "node scripts/download-audio.js",
     "setup-ai-insights": "node scripts/setup-ai-insights.js",
-    "postinstall": "yarn add --force next-i18next react-chartjs-2 chart.js"
+    "postinstall": "yarn add --force next-i18next react-chartjs-2 chart.js && node ./scripts/fix-dependencies.js"
   },
   "dependencies": {
     "@sentry/nextjs": "^7.93.0",
@@ -40,7 +40,7 @@
     "react-i18next": "^15.4.1",
     "redis": "^4.6.13",
     "stability-client": "^1.9.0",
-    "three-bmfont-text": "https://github.com/dmarcos/three-bmfont-text.git",
+    "three-bmfont-text": "2.4.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -61,5 +61,8 @@
     "tailwindcss": "3.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
+  },
+  "resolutions": {
+    "three-bmfont-text": "2.4.0"
   }
 }

@@ -1,7 +1,18 @@
 {
-  "buildCommand": "next build",
+  "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "yarn install --network-timeout 100000 --frozen-lockfile",
   "framework": "nextjs",
   "outputDirectory": ".next",
+  "env": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "GIT_SSH_COMMAND": "echo 'Host key verification failed'; exit 1",
+    "GIT_TERMINAL_PROMPT": "0",
+    "NPM_CONFIG_REGISTRY": "https://registry.npmjs.org/",
+    "YARN_REGISTRY": "https://registry.npmjs.org/",
+    "NEXT_PUBLIC_IS_BUILD_TIME": "true"
+  },
   "regions": ["iad1"],
   "routes": [
     { "src": "/community", "dest": "/community" },
