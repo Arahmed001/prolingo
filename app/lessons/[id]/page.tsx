@@ -129,6 +129,11 @@ export default function LessonPage() {
   // AI content related states
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [showAIContent, setShowAIContent] = useState(false);
+  // Teacher-only states
+  const [isTeacher, setIsTeacher] = useState(false);
+  const [showLessonPlan, setShowLessonPlan] = useState(false);
+  const [lessonPlan, setLessonPlan] = useState<any>(null);
+  const [isGeneratingLessonPlan, setIsGeneratingLessonPlan] = useState(false);
   
   const router = useRouter();
   const params = useParams();
@@ -213,6 +218,22 @@ export default function LessonPage() {
       if (user) {
         setUser(user);
         setLoading(false);
+        
+        // Check if user is a teacher
+        const checkUserRole = async () => {
+          try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            
+            if (userDocSnap.exists() && userDocSnap.data().role === 'teacher') {
+              setIsTeacher(true);
+            }
+          } catch (error) {
+            console.error("Error checking user role:", error);
+          }
+        };
+        
+        checkUserRole();
       } else {
         router.push('/login');
       }
@@ -688,6 +709,148 @@ export default function LessonPage() {
     checkAndCreateAIContent();
   }, [user, lessonId, lesson]);
 
+  // Generate lesson plan for teachers
+  const generateLessonPlan = async () => {
+    if (!user || !isTeacher || !lesson) return;
+    
+    setIsGeneratingLessonPlan(true);
+    setToastMessage('Generating lesson plan...');
+    setShowToast(true);
+    
+    try {
+      // In a real implementation, this might be an API call to an AI service
+      // For now, we'll create a structured lesson plan based on the lesson content
+      const generatedLessonPlan = {
+        title: `Lesson Plan: ${lesson.title}`,
+        level: lesson.level,
+        duration: "50 minutes",
+        objectives: [
+          `Students will be able to use key vocabulary related to ${lesson.title} in context`,
+          "Students will practice speaking and listening skills",
+          "Students will engage in communicative activities to reinforce learning"
+        ],
+        materials: [
+          "Handouts with vocabulary and example sentences",
+          "Audio recordings for pronunciation practice",
+          "Interactive whiteboard or poster paper for group activities"
+        ],
+        warmUp: {
+          title: "Warm-up Activity (5-7 minutes)",
+          description: `Engage students in a brief discussion about ${lesson.title.toLowerCase()} in their daily lives. Ask open-ended questions to activate prior knowledge.`,
+          questions: [
+            "What do you already know about this topic?",
+            "When do you use this vocabulary in everyday situations?",
+            "What challenges do you face when discussing this topic?"
+          ]
+        },
+        presentation: {
+          title: "Presentation (10-15 minutes)",
+          description: "Introduce new vocabulary and grammar structures",
+          steps: [
+            "Present new vocabulary with visual aids and example sentences",
+            "Model pronunciation and have students repeat",
+            "Explain grammatical structures in context",
+            "Check for understanding through quick comprehension questions"
+          ],
+          vocabulary: lesson.vocabulary?.map(v => ({ 
+            word: v.term || v.word || '', 
+            definition: v.definition,
+            exampleSentence: lesson.aiContent?.sentences.find(s => s.includes(String(v.term || v.word || '').toLowerCase())) || `Example with ${v.term || v.word || ''}`
+          })) || []
+        },
+        practice: {
+          title: "Guided Practice (15 minutes)",
+          description: "Structured activities to practice new language",
+          activities: [
+            {
+              name: "Gap-fill Exercise",
+              description: "Students complete sentences using the new vocabulary"
+            },
+            {
+              name: "Pair Dialog Practice",
+              description: "Students practice conversations in pairs using provided dialog templates"
+            },
+            {
+              name: "Sentence Formation",
+              description: "Students create their own sentences using the target grammar structures"
+            }
+          ]
+        },
+        production: {
+          title: "Free Production (15 minutes)",
+          description: "Less structured activities allowing creative use of language",
+          activities: [
+            {
+              name: "Role Play",
+              description: "Students act out scenarios related to the lesson theme"
+            },
+            {
+              name: "Discussion Groups",
+              description: "Small groups discuss topics using target vocabulary and structures"
+            },
+            {
+              name: "Information Gap Activity",
+              description: "Students work in pairs to complete missing information"
+            }
+          ]
+        },
+        assessment: {
+          title: "Assessment (5 minutes)",
+          description: "Check understanding and provide feedback",
+          methods: [
+            "Exit tickets with key questions about the lesson content",
+            "Brief oral assessment with random students",
+            "Self-assessment checklist for students to evaluate their own understanding"
+          ]
+        },
+        homework: {
+          title: "Homework/Extension",
+          description: "Activities to reinforce learning outside class",
+          assignments: [
+            "Complete online quiz related to the lesson",
+            "Write short paragraph using at least 5 vocabulary items",
+            "Prepare a brief presentation about a real-life application of the topic"
+          ]
+        },
+        differentiation: {
+          title: "Differentiation Strategies",
+          forStrugglingStudents: [
+            "Provide vocabulary list with L1 translations",
+            "Offer additional guided practice time",
+            "Use visual aids to reinforce concepts"
+          ],
+          forAdvancedStudents: [
+            "Assign more complex production tasks",
+            "Have them help peers as 'language coaches'",
+            "Provide additional challenging vocabulary"
+          ]
+        },
+        notes: {
+          title: "Teacher Notes",
+          cultural: "Highlight any cultural aspects relevant to this topic",
+          common: "Address common errors students make with this content",
+          extensions: "Suggestions for extending the lesson if time permits"
+        }
+      };
+      
+      setLessonPlan(generatedLessonPlan);
+      setShowLessonPlan(true);
+      setToastMessage('Lesson plan generated successfully!');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error generating lesson plan:', error);
+      setToastMessage('Failed to generate lesson plan. Please try again.');
+      setShowToast(true);
+    } finally {
+      setIsGeneratingLessonPlan(false);
+    }
+  };
+  
+  // Close lesson plan modal
+  const closeLessonPlan = () => {
+    setShowLessonPlan(false);
+  };
+
   // Show loading state
   if (loading || !lesson) {
     return (
@@ -714,6 +877,32 @@ export default function LessonPage() {
                   <p className="text-gray-600 mt-1">Level: {lesson.level} • Difficulty: {lesson.difficulty}</p>
                 </div>
                 <div className="flex space-x-3">
+                  {/* Teacher-only Lesson Plan button */}
+                  {isTeacher && (
+                    <button
+                      onClick={generateLessonPlan}
+                      disabled={isGeneratingLessonPlan}
+                      className={`bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center ${isGeneratingLessonPlan ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      aria-label="Generate lesson plan"
+                    >
+                      {isGeneratingLessonPlan ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                          </svg>
+                          Lesson Plan
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={handleShareLesson}
                     className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary-dark transition-colors flex items-center"
@@ -951,6 +1140,213 @@ export default function LessonPage() {
       </main>
       <Footer />
       {showToast && <CustomToast message={toastMessage} onClose={() => setShowToast(false)} />}
+      
+      {/* Lesson Plan Modal for Teachers */}
+      {showLessonPlan && lessonPlan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-primary">{lessonPlan.title}</h2>
+              <button 
+                onClick={closeLessonPlan}
+                className="text-gray-500 hover:text-gray-700 focus:outline-none"
+                aria-label="Close lesson plan"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {/* Lesson Plan Metadata */}
+              <div className="flex flex-wrap mb-6 gap-4">
+                <div className="bg-blue-50 px-4 py-2 rounded-lg">
+                  <span className="text-sm text-blue-700 font-medium">Level:</span>
+                  <span className="ml-2 text-blue-900">{lessonPlan.level}</span>
+                </div>
+                <div className="bg-blue-50 px-4 py-2 rounded-lg">
+                  <span className="text-sm text-blue-700 font-medium">Duration:</span>
+                  <span className="ml-2 text-blue-900">{lessonPlan.duration}</span>
+                </div>
+              </div>
+              
+              {/* Learning Objectives */}
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">Learning Objectives</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  {lessonPlan.objectives.map((objective: string, index: number) => (
+                    <li key={index} className="text-gray-700">{objective}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              {/* Materials */}
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">Materials</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  {lessonPlan.materials.map((material: string, index: number) => (
+                    <li key={index} className="text-gray-700">{material}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              {/* Warm-up */}
+              <div className="mb-8 p-4 bg-yellow-50 rounded-lg">
+                <h3 className="text-xl font-semibold text-yellow-800 mb-2">{lessonPlan.warmUp.title}</h3>
+                <p className="text-gray-700 mb-3">{lessonPlan.warmUp.description}</p>
+                <div className="bg-white p-3 rounded border border-yellow-200">
+                  <h4 className="font-medium text-yellow-800 mb-2">Discussion Questions:</h4>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {lessonPlan.warmUp.questions.map((question: string, index: number) => (
+                      <li key={index} className="text-gray-700">{question}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              
+              {/* Presentation */}
+              <div className="mb-8 p-4 bg-blue-50 rounded-lg">
+                <h3 className="text-xl font-semibold text-blue-800 mb-2">{lessonPlan.presentation.title}</h3>
+                <p className="text-gray-700 mb-3">{lessonPlan.presentation.description}</p>
+                <div className="bg-white p-3 rounded border border-blue-200 mb-4">
+                  <h4 className="font-medium text-blue-800 mb-2">Teaching Steps:</h4>
+                  <ol className="list-decimal pl-5 space-y-1">
+                    {lessonPlan.presentation.steps.map((step: string, index: number) => (
+                      <li key={index} className="text-gray-700">{step}</li>
+                    ))}
+                  </ol>
+                </div>
+                
+                <div className="bg-white p-3 rounded border border-blue-200">
+                  <h4 className="font-medium text-blue-800 mb-2">Key Vocabulary:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {lessonPlan.presentation.vocabulary.map((vocab: any, index: number) => (
+                      <div key={index} className="p-2 border-b border-blue-100">
+                        <div className="font-medium">{vocab.word}</div>
+                        <div className="text-sm text-gray-600">{vocab.definition}</div>
+                        <div className="text-sm text-gray-500 italic mt-1">{vocab.exampleSentence}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Guided Practice */}
+              <div className="mb-8 p-4 bg-green-50 rounded-lg">
+                <h3 className="text-xl font-semibold text-green-800 mb-2">{lessonPlan.practice.title}</h3>
+                <p className="text-gray-700 mb-3">{lessonPlan.practice.description}</p>
+                <div className="bg-white p-3 rounded border border-green-200">
+                  <h4 className="font-medium text-green-800 mb-2">Activities:</h4>
+                  <div className="space-y-3">
+                    {lessonPlan.practice.activities.map((activity: any, index: number) => (
+                      <div key={index} className="p-2 border-l-4 border-green-300 pl-3">
+                        <div className="font-medium">{activity.name}</div>
+                        <div className="text-sm text-gray-600">{activity.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Free Production */}
+              <div className="mb-8 p-4 bg-purple-50 rounded-lg">
+                <h3 className="text-xl font-semibold text-purple-800 mb-2">{lessonPlan.production.title}</h3>
+                <p className="text-gray-700 mb-3">{lessonPlan.production.description}</p>
+                <div className="bg-white p-3 rounded border border-purple-200">
+                  <h4 className="font-medium text-purple-800 mb-2">Activities:</h4>
+                  <div className="space-y-3">
+                    {lessonPlan.production.activities.map((activity: any, index: number) => (
+                      <div key={index} className="p-2 border-l-4 border-purple-300 pl-3">
+                        <div className="font-medium">{activity.name}</div>
+                        <div className="text-sm text-gray-600">{activity.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Assessment and Homework */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="p-4 bg-red-50 rounded-lg">
+                  <h3 className="text-xl font-semibold text-red-800 mb-2">{lessonPlan.assessment.title}</h3>
+                  <p className="text-gray-700 mb-3">{lessonPlan.assessment.description}</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {lessonPlan.assessment.methods.map((method: string, index: number) => (
+                      <li key={index} className="text-gray-700">{method}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="p-4 bg-indigo-50 rounded-lg">
+                  <h3 className="text-xl font-semibold text-indigo-800 mb-2">{lessonPlan.homework.title}</h3>
+                  <p className="text-gray-700 mb-3">{lessonPlan.homework.description}</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {lessonPlan.homework.assignments.map((assignment: string, index: number) => (
+                      <li key={index} className="text-gray-700">{assignment}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              
+              {/* Differentiation */}
+              <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">{lessonPlan.differentiation.title}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-2">For Struggling Students:</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {lessonPlan.differentiation.forStrugglingStudents.map((strategy: string, index: number) => (
+                        <li key={index} className="text-gray-600">{strategy}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-2">For Advanced Students:</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {lessonPlan.differentiation.forAdvancedStudents.map((strategy: string, index: number) => (
+                        <li key={index} className="text-gray-600">{strategy}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Teacher Notes */}
+              <div className="p-4 bg-gray-100 rounded-lg border border-gray-300">
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">{lessonPlan.notes.title}</h3>
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-medium text-gray-700">Cultural Considerations:</h4>
+                    <p className="text-gray-600">{lessonPlan.notes.cultural}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-700">Common Errors:</h4>
+                    <p className="text-gray-600">{lessonPlan.notes.common}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-700">Possible Extensions:</h4>
+                    <p className="text-gray-600">{lessonPlan.notes.extensions}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Print button */}
+              <div className="mt-6 text-center">
+                <button 
+                  onClick={() => window.print()}
+                  className="bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clipRule="evenodd" />
+                  </svg>
+                  Print Lesson Plan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
