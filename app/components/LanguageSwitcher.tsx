@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage, LANGUAGES } from './I18nProvider';
 
-export default function LanguageSwitcher() {
+export default function LanguageSwitcher({ customClassName = '' }: { customClassName?: string }) {
   const { language, setLanguage } = useLanguage();
   const router = useRouter();
 

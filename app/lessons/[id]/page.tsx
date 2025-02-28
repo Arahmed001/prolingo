@@ -350,11 +350,8 @@ export default function LessonPage() {
 
   // Start quiz
   const handleStartQuiz = () => {
-    setQuizMode(true);
-    setCurrentQuizIndex(0);
-    setScore(0);
-    setQuizCompleted(false);
-    setSelectedAnswer('');
+    // Instead of just toggling mode, navigate to the dedicated quiz page
+    router.push(`/quiz/${lessonId}`);
   };
 
   // Submit answer

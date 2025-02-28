@@ -45,12 +45,12 @@ interface User {
 
 interface Challenge {
   id: string;
-  task: string;
-  duration: string;
-  reward: string;
-  description: string;
-  xpReward: number;
-  createdAt: any;
+  task?: string;
+  duration?: string;
+  reward?: string;
+  description?: string;
+  xpReward?: number;
+  createdAt?: any;
 }
 
 interface Progress {
@@ -244,31 +244,44 @@ export default function ProfilePage() {
 
   // Calculate challenge progress
   const calculateChallengeProgress = (challenge: Challenge) => {
-    if (challenge.task.includes('Complete') && challenge.task.includes('lessons')) {
-      const completedLessons = userProgress.filter(p => p.completed && p.lessonId.startsWith('lesson')).length;
-      const targetLessons = parseInt(challenge.task.split(' ')[1]);
-      return Math.min(completedLessons / targetLessons, 1) * 100;
+    // Check if challenge.task exists to prevent "undefined is not an object" error
+    if (!challenge || !challenge.task) {
+      return 0; // Return 0 progress if challenge.task is undefined
     }
     
-    if (challenge.task.includes('Complete') && challenge.task.includes('quizzes')) {
-      const completedQuizzes = userProgress.filter(p => p.completed && p.lessonId.startsWith('quiz')).length;
-      const targetQuizzes = parseInt(challenge.task.split(' ')[1]);
-      return Math.min(completedQuizzes / targetQuizzes, 1) * 100;
+    try {
+      if (challenge.task.includes('Complete') && challenge.task.includes('lessons')) {
+        const completedLessons = userProgress.filter(p => p.completed && p.lessonId.startsWith('lesson')).length;
+        // Safely parse the number, defaulting to 1 if parsing fails
+        const targetLessons = parseInt(challenge.task.split(' ')[1]) || 1;
+        return Math.min(completedLessons / targetLessons, 1) * 100;
+      }
+      
+      if (challenge.task.includes('Complete') && challenge.task.includes('quizzes')) {
+        const completedQuizzes = userProgress.filter(p => p.completed && p.lessonId.startsWith('quiz')).length;
+        // Safely parse the number, defaulting to 1 if parsing fails
+        const targetQuizzes = parseInt(challenge.task.split(' ')[1]) || 1;
+        return Math.min(completedQuizzes / targetQuizzes, 1) * 100;
+      }
+      
+      if (challenge.task.includes('Achieve')) {
+        const highScoreTests = userProgress.filter(p => p.score >= 90).length;
+        // Safely parse the number, defaulting to 1 if parsing fails
+        const targetTests = parseInt(challenge.task.split(' ')[2]) || 1;
+        return Math.min(highScoreTests / targetTests, 1) * 100;
+      }
+      
+      // Default progress calculation
+      return 0;
+    } catch (error) {
+      console.error("Error calculating challenge progress:", error);
+      return 0; // Return 0 progress if there's an error
     }
-    
-    if (challenge.task.includes('Achieve')) {
-      const highScoreTests = userProgress.filter(p => p.score >= 90).length;
-      const targetTests = parseInt(challenge.task.split(' ')[2]);
-      return Math.min(highScoreTests / targetTests, 1) * 100;
-    }
-    
-    // Default progress calculation
-    return 0;
   };
 
   // Claim reward for completed challenge
   const claimChallengeReward = async (challenge: Challenge) => {
-    if (!user) return;
+    if (!user || !challenge || !challenge.task) return;
     
     const progress = calculateChallengeProgress(challenge);
     
@@ -276,21 +289,24 @@ export default function ProfilePage() {
       try {
         const userRef = doc(db, 'users', user.uid);
         
-        // Add XP and the challenge reward
+        // Add XP and the challenge reward (safely handle missing properties)
+        const xpReward = challenge.xpReward || 10; // Default to 10 XP if missing
+        const reward = challenge.reward || 'XP Bonus'; // Default reward name if missing
+        
         await updateDoc(userRef, {
-          xp: increment(challenge.xpReward),
-          rewards: arrayUnion(challenge.reward)
+          xp: increment(xpReward),
+          rewards: arrayUnion(reward as string) // Use type assertion to tell TypeScript this is definitely a string
         });
         
-        // Update local user state
+        // Update local user state (safely handle missing properties)
         setUser(prev => prev ? {
           ...prev,
-          xp: prev.xp + challenge.xpReward,
-          rewards: [...prev.rewards, challenge.reward]
+          xp: prev.xp + xpReward,
+          rewards: [...prev.rewards, reward]
         } : null);
         
         // Show reward modal
-        setCurrentReward(challenge.reward);
+        setCurrentReward(reward);
         setShowRewardModal(true);
         
         // Refresh challenges
@@ -404,7 +420,15 @@ export default function ProfilePage() {
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-bold mb-4">Weekly Challenges</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {challenges.length === 0 && (
+                <p className="text-gray-500 col-span-2">No challenges available at the moment. Check back soon!</p>
+              )}
               {challenges.map((challenge) => {
+                // Skip rendering if challenge is missing required properties
+                if (!challenge || !challenge.task || !challenge.id) {
+                  return null;
+                }
+                
                 const progress = calculateChallengeProgress(challenge);
                 const isCompleted = progress >= 100;
                 
@@ -413,13 +437,13 @@ export default function ProfilePage() {
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-semibold">{challenge.task}</h3>
                       <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
-                        {challenge.duration}
+                        {challenge.duration || 'Ongoing'}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{challenge.description}</p>
+                    <p className="text-sm text-gray-600 mb-2">{challenge.description || 'Complete this challenge to earn rewards!'}</p>
                     <div className="flex items-center gap-2 text-sm mb-3">
                       <span className="text-yellow-500">🏆</span>
-                      <span>{challenge.reward} (+{challenge.xpReward} XP)</span>
+                      <span>{challenge.reward || 'XP Reward'} (+{challenge.xpReward || 0} XP)</span>
                     </div>
                     <div className="mb-3">
                       <div className="flex justify-between mb-1 text-xs">

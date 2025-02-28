@@ -4,6 +4,19 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from './I18nProvider';
 import { usePathname } from 'next/navigation';
+import {
+  HomeIcon,
+  UserIcon,
+  AcademicCapIcon,
+  ClipboardDocumentCheckIcon,
+  UsersIcon,
+  Cog6ToothIcon,
+  InformationCircleIcon,
+  MegaphoneIcon,
+  ChatBubbleLeftRightIcon,
+  CalendarDaysIcon,
+  TrophyIcon
+} from '@heroicons/react/24/outline';
 
 // Interface for navigation items
 interface NavItem {
@@ -83,9 +96,21 @@ export default function Sidebar() {
         </svg>
       ),
       children: [
-        { label: t('forums') || 'Forums', href: '/community/forums' },
-        { label: t('events') || 'Events', href: '/community/events' },
-        { label: t('leaderboard') || 'Leaderboard', href: '/community/leaderboard' }
+        {
+          label: t('forums') || 'Forums',
+          href: '/forums',
+          icon: <ChatBubbleLeftRightIcon className="h-5 w-5" />,
+        },
+        {
+          label: t('events') || 'Events',
+          href: '/events',
+          icon: <CalendarDaysIcon className="h-5 w-5" />,
+        },
+        {
+          label: t('leaderboard') || 'Leaderboard',
+          href: '/leaderboard',
+          icon: <TrophyIcon className="h-5 w-5" />,
+        }
       ]
     },
     {
