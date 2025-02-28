@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from './I18nProvider';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
 
 // Interface for navigation items
 interface NavItem {
@@ -24,7 +23,7 @@ export default function Sidebar() {
   // Main navigation items
   const navigationItems: NavItem[] = [
     {
-      label: t('home'),
+      label: t('home') || 'Home',
       href: '/',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -103,7 +102,7 @@ export default function Sidebar() {
       ]
     },
     {
-      label: t('about'),
+      label: t('about') || 'About',
       href: '/about',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -112,7 +111,7 @@ export default function Sidebar() {
       )
     },
     {
-      label: t('marketing'),
+      label: t('marketing') || 'Marketing',
       href: '/marketing',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -186,7 +185,7 @@ export default function Sidebar() {
               <span className="mr-3">{item.icon}</span>
               {isOpen && (
                 <>
-                  <span className="flex-grow">{item.label}</span>
+                  <span className="flex-grow capitalize">{item.label}</span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`h-4 w-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
@@ -208,7 +207,7 @@ export default function Sidebar() {
               title={!isOpen ? item.label : ''}
             >
               <span className="mr-3">{item.icon}</span>
-              {isOpen && <span>{item.label}</span>}
+              {isOpen && <span className="capitalize">{item.label}</span>}
             </Link>
           )}
         </div>
@@ -231,7 +230,7 @@ export default function Sidebar() {
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {child.label}
+                <span className="capitalize">{child.label}</span>
               </Link>
             ))}
           </div>

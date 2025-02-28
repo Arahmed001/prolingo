@@ -23,8 +23,13 @@ const openSans = Open_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'ProLingo',
-  description: 'AI-powered language learning platform',
+  title: 'ProLingo - AI-Powered Language Learning',
+  description: 'ProLingo combines artificial intelligence with linguistic expertise to deliver personalized language learning experiences.',
+}
+
+// Enforce content security policy
+export const headers = {
+  'Content-Security-Policy': "default-src 'self'; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 }
 
 function RootLayout({
@@ -34,7 +39,7 @@ function RootLayout({
 }) {
   return (
     <html lang="en" className={`${poppins.variable} ${openSans.variable}`}>
-      <body className={`${openSans.className} min-h-screen`}>
+      <body className={`${openSans.className} min-h-screen bg-gray-50`}>
         <AccessibilityProvider />
         <DataInitializer />
         <I18nProvider>
