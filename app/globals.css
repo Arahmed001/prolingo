@@ -168,3 +168,90 @@
     padding-left: 2.5rem;
   }
 }
+
+/* Add prose styling for proper HTML rendering */
+.prose {
+  max-width: 65ch;
+  color: rgb(55, 65, 81);
+  line-height: 1.75;
+}
+
+.prose h1, 
+.prose h2, 
+.prose h3, 
+.prose h4, 
+.prose h5, 
+.prose h6 {
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+  font-weight: 600;
+  color: rgb(17, 24, 39);
+}
+
+.prose h1 {
+  font-size: 2.25rem;
+}
+
+.prose h2 {
+  font-size: 1.875rem;
+}
+
+.prose h3 {
+  font-size: 1.5rem;
+}
+
+.prose h4 {
+  font-size: 1.25rem;
+}
+
+.prose p {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose ul {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  padding-left: 1.625em;
+  list-style-type: disc;
+}
+
+.prose ol {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  padding-left: 1.625em;
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose strong {
+  font-weight: 600;
+  color: rgb(17, 24, 39);
+}
+
+.prose a {
+  color: rgb(37, 99, 235);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.prose blockquote {
+  font-weight: 500;
+  font-style: italic;
+  color: rgb(55, 65, 81);
+  border-left-width: 0.25rem;
+  border-left-color: rgb(209, 213, 219);
+  quotes: "\201C""\201D""\2018""\2019";
+  margin-top: 1.6em;
+  margin-bottom: 1.6em;
+  padding-left: 1em;
+}
+
+.max-w-none {
+  max-width: none;
+}

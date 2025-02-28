@@ -10,12 +10,9 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc, collection, addDoc, serverTimestamp, getDoc, query, where, getDocs, orderBy, limit, arrayUnion, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase/init';
-import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { usePerformanceMonitoring } from '../../../lib/performance';
 import CustomToast from '../../components/Toast';
-// Import for HTML parsing
-import parse from 'html-react-parser';
 
 // Base64 blur placeholders for images
 const blurPlaceholders = {
@@ -1077,9 +1074,10 @@ export default function LessonPage() {
           {slide.type === 'content' && (
             <div className="content-slide">
               {slide.isHtml ? (
-                <div className="prose max-w-none">
-                  {parse(slide.content)}
-                </div>
+                <div 
+                  className="prose max-w-none"
+                  dangerouslySetInnerHTML={{ __html: slide.content }}
+                />
               ) : (
                 <div className="prose max-w-none">
                   <p className="text-lg">{slide.content}</p>
@@ -1362,11 +1360,27 @@ export default function LessonPage() {
     }
   };
 
+  // Render the lesson content with HTML support
+  const renderLessonContent = (content: string) => {
+    // Check if content contains HTML tags
+    const containsHtml = /<[a-z][\s\S]*>/i.test(content);
+    
+    if (containsHtml) {
+      return (
+        <div 
+          className="prose max-w-none"
+          dangerouslySetInnerHTML={{ __html: content }} 
+        />
+      );
+    } else {
+      return <p className="prose max-w-none">{content}</p>;
+    }
+  };
+
   // Show loading state
   if (loading || !lesson) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
         <main id="main-content" className="flex-grow flex items-center justify-center">
           <div className="loader">Loading...</div>
         </main>
@@ -1377,38 +1391,108 @@ export default function LessonPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
       <main id="main-content" className="flex-grow container mx-auto px-4 py-8">
         {!slideViewMode ? (
-          // Regular view with option to switch to slide view
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-primary">{lesson.title}</h1>
-                <p className="text-gray-600 mt-1">Level: {lesson.level} • Difficulty: {lesson.difficulty}</p>
-              </div>
-              <div className="flex space-x-3">
-                {/* Button to enter slide view */}
-                <button
-                  onClick={toggleSlideView}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                  aria-label="View as Slides"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clipRule="evenodd" />
-                  </svg>
-                  View as Slides
-                </button>
+          <div className="lesson-container">
+            {/* Lesson header with action buttons */}
+            <div className="lesson-header mb-6 bg-white rounded-lg shadow-lg p-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-blue-900 mb-2">{lesson?.title}</h1>
+                  <div className="flex flex-wrap gap-3 text-sm text-gray-500">
+                    <span>Level: {lesson?.level}</span>
+                    {lesson?.difficulty && <span>• Difficulty: {lesson?.difficulty}</span>}
+                  </div>
+                </div>
                 
-                {/* Teacher-only Lesson Plan button */}
-                {isTeacher && (
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3">
+                  {/* Button to enter slide view */}
                   <button
-                    onClick={generateLessonPlan}
-                    disabled={isGeneratingLessonPlan}
-                    className={`bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center ${isGeneratingLessonPlan ? 'opacity-70 cursor-not-allowed' : ''}`}
-                    aria-label="Generate lesson plan"
+                    onClick={toggleSlideView}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                    aria-label="View as Slides"
                   >
-                    {isGeneratingLessonPlan ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clipRule="evenodd" />
+                    </svg>
+                    View as Slides
+                  </button>
+                  
+                  {/* Teacher-only Lesson Plan button */}
+                  {isTeacher && (
+                    <button
+                      onClick={generateLessonPlan}
+                      disabled={isGeneratingLessonPlan}
+                      className={`bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center ${isGeneratingLessonPlan ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      aria-label="Generate lesson plan"
+                    >
+                      {isGeneratingLessonPlan ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                          </svg>
+                          Lesson Plan
+                        </>
+                      )}
+                    </button>
+                  )}
+                  
+                  {/* Share Lesson button */}
+                  <button
+                    onClick={handleShareLesson}
+                    className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary-dark transition-colors flex items-center"
+                    aria-label="Share lesson"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                    </svg>
+                    Share Lesson
+                  </button>
+                  
+                  {/* Take Quiz button */}
+                  <button
+                    onClick={handleStartQuiz}
+                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                  >
+                    Take Quiz
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Content sections */}
+            <div className="lesson-content bg-white rounded-lg shadow-lg p-6">
+              {/* Description */}
+              <section className="lesson-section mb-8">
+                <h2 className="text-2xl font-semibold text-blue-800 mb-3">Description</h2>
+                <p className="text-gray-700">{lesson?.description}</p>
+              </section>
+              
+              {/* Content */}
+              <section className="lesson-section mb-8">
+                <h2 className="text-2xl font-semibold text-blue-800 mb-3">Content</h2>
+                {lesson?.content && renderLessonContent(lesson.content)}
+              </section>
+              
+              {/* AI Generated Content Section */}
+              <div className="mb-8 border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-primary">AI-Generated Content</h2>
+                  <button
+                    onClick={generateAIContent}
+                    disabled={isGeneratingAI}
+                    className={`px-4 py-2 rounded-lg text-white ${isGeneratingAI ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} transition-colors flex items-center`}
+                  >
+                    {isGeneratingAI ? (
                       <>
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1419,161 +1503,98 @@ export default function LessonPage() {
                     ) : (
                       <>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
                         </svg>
-                        Lesson Plan
+                        Refresh AI Content
                       </>
                     )}
                   </button>
+                </div>
+                
+                {lesson.aiContent && showAIContent ? (
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Practice Sentences</h3>
+                      <div className="space-y-2">
+                        {lesson.aiContent.sentences.map((sentence, index) => (
+                          <div key={index} className="p-2 bg-gray-50 rounded border-l-4 border-indigo-300">
+                            {sentence}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Vocabulary</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {lesson.aiContent.vocab.map((item, index) => (
+                          <div key={index} className="p-3 bg-gray-50 rounded border border-indigo-100">
+                            <div className="font-semibold text-indigo-800">{item.word}</div>
+                            <div className="text-gray-700 text-sm">{item.definition}</div>
+                            <div className="text-gray-600 text-sm italic mt-1">"{item.usage}"</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Grammar Focus</h3>
+                      <div className="p-3 bg-gray-50 rounded">
+                        <div className="font-medium mb-1">{lesson.aiContent.grammar.rule}</div>
+                        <div className="text-gray-700 italic">Example: {lesson.aiContent.grammar.example}</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">
+                      {isGeneratingAI ? 
+                        'Generating personalized content based on your proficiency level...' : 
+                        'Click the button above to generate personalized AI content for this lesson.'}
+                    </p>
+                  </div>
                 )}
-                
-                <button
-                  onClick={handleShareLesson}
-                  className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary-dark transition-colors flex items-center"
-                  aria-label="Share lesson"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-                  </svg>
-                  Share Lesson
-                </button>
-                
-                <button
-                  onClick={handleStartQuiz}
-                  className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-                >
-                  Take Quiz
-                </button>
-              </div>
-            </div>
-            
-            {/* Regular lesson content view */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-2">Description</h2>
-              <p className="text-gray-700">{lesson.description}</p>
-            </div>
-            
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-2">Content</h2>
-              <div className="prose max-w-none">
-                {lesson.content?.split('\n').map((paragraph, index) => (
-                  <p key={index} className="mb-4">{paragraph}</p>
-                ))}
-              </div>
-            </div>
-            
-            {/* AI Generated Content Section */}
-            <div className="mb-8 border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-primary">AI-Generated Content</h2>
-                <button
-                  onClick={generateAIContent}
-                  disabled={isGeneratingAI}
-                  className={`px-4 py-2 rounded-lg text-white ${isGeneratingAI ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} transition-colors flex items-center`}
-                >
-                  {isGeneratingAI ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                      </svg>
-                      Refresh AI Content
-                    </>
-                  )}
-                </button>
               </div>
               
-              {lesson.aiContent && showAIContent ? (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-lg p-4 shadow-sm">
-                    <h3 className="text-lg font-medium text-indigo-700 mb-2">Practice Sentences</h3>
-                    <div className="space-y-2">
-                      {lesson.aiContent.sentences.map((sentence, index) => (
-                        <div key={index} className="p-2 bg-gray-50 rounded border-l-4 border-indigo-300">
-                          {sentence}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg p-4 shadow-sm">
-                    <h3 className="text-lg font-medium text-indigo-700 mb-2">Vocabulary</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {lesson.aiContent.vocab.map((item, index) => (
-                        <div key={index} className="p-3 bg-gray-50 rounded border border-indigo-100">
-                          <div className="font-semibold text-indigo-800">{item.word}</div>
-                          <div className="text-gray-700 text-sm">{item.definition}</div>
-                          <div className="text-gray-600 text-sm italic mt-1">"{item.usage}"</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg p-4 shadow-sm">
-                    <h3 className="text-lg font-medium text-indigo-700 mb-2">Grammar Focus</h3>
-                    <div className="p-3 bg-gray-50 rounded">
-                      <div className="font-medium mb-1">{lesson.aiContent.grammar.rule}</div>
-                      <div className="text-gray-700 italic">Example: {lesson.aiContent.grammar.example}</div>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Vocabulary</h2>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {lesson.vocabulary?.map((word, index) => (
+                      <li key={index} className="text-gray-700">{word.term}: {word.definition}</li>
+                    ))}
+                  </ul>
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">
-                    {isGeneratingAI ? 
-                      'Generating personalized content based on your proficiency level...' : 
-                      'Click the button above to generate personalized AI content for this lesson.'}
-                  </p>
+
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Grammar Points</h2>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {lesson.grammar?.map((point, index) => (
+                      <li key={index} className="text-gray-700">{point.question}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              
+              {userProgress.length > 0 && (
+                <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+                  <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {userProgress.map((progress) => (
+                      <div key={progress.id} className="bg-white p-3 rounded shadow">
+                        <div className="text-lg font-semibold text-primary">{progress.score}%</div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(progress.timestamp).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <h2 className="text-xl font-semibold mb-2">Vocabulary</h2>
-                <ul className="list-disc pl-5 space-y-1">
-                  {lesson.vocabulary?.map((word, index) => (
-                    <li key={index} className="text-gray-700">{word.term}: {word.definition}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold mb-2">Grammar Points</h2>
-                <ul className="list-disc pl-5 space-y-1">
-                  {lesson.grammar?.map((point, index) => (
-                    <li key={index} className="text-gray-700">{point.question}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            
-            {userProgress.length > 0 && (
-              <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {userProgress.map((progress) => (
-                    <div key={progress.id} className="bg-white p-3 rounded shadow">
-                      <div className="text-lg font-semibold text-primary">{progress.score}%</div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(progress.timestamp).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         ) : (
-          // Slide view
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden" ref={slideContainerRef}>
+          <div className={`slide-view-container ${isFullscreen ? 'fullscreen' : ''}`} ref={slideContainerRef}>
             <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
               <div>
                 <h1 className="text-xl font-bold text-primary">{lesson.title}</h1>
