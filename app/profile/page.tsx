@@ -22,6 +22,7 @@ import {
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Link from 'next/link';
+import RewardHistory from '../components/RewardHistory';
 
 // Prevent static prerendering
 export const dynamic = 'force-dynamic';
@@ -270,7 +271,50 @@ export default function ProfilePage() {
   // Fetch a random daily challenge
   const fetchDailyChallenge = async () => {
     try {
-      // First, check if we already have lessons in state
+      if (!user) return;
+      
+      // First check if user has already completed a challenge today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1); // Start of tomorrow
+      
+      // Check for responses submitted today
+      const responseQuery = query(
+        collection(db, 'challengeResponses'),
+        where('userId', '==', user.uid),
+        where('submittedAt', '>=', Timestamp.fromDate(today)),
+        where('submittedAt', '<', Timestamp.fromDate(tomorrow))
+      );
+      
+      const responseSnapshot = await getDocs(responseQuery);
+      
+      // If user has already completed a challenge today, show that info
+      if (!responseSnapshot.empty) {
+        setChallengeSubmitStatus('You\'ve already completed today\'s challenge! Come back tomorrow for a new one.');
+        return;
+      }
+      
+      // Check for challenges in Firestore
+      const challengesQuery = query(
+        collection(db, 'challenges'),
+        limit(10)
+      );
+      
+      const challengesSnapshot = await getDocs(challengesQuery);
+      
+      if (!challengesSnapshot.empty) {
+        // Get a random challenge from the collection
+        const challengeDocs = challengesSnapshot.docs;
+        const randomChallenge = challengeDocs[Math.floor(Math.random() * challengeDocs.length)];
+        const challengeData = { id: randomChallenge.id, ...randomChallenge.data() } as Challenge;
+        
+        setDailyChallenge(challengeData);
+        return;
+      }
+      
+      // If no challenges in collection, fall back to lesson-based challenges
       const lessonsQuery = query(
         collection(db, 'lessons'),
         limit(10)
@@ -330,6 +374,28 @@ export default function ProfilePage() {
     setSubmitting(true);
     
     try {
+      // Check if user has already submitted a challenge today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const responseQuery = query(
+        collection(db, 'challengeResponses'),
+        where('userId', '==', user.uid),
+        where('submittedAt', '>=', Timestamp.fromDate(today)),
+        where('submittedAt', '<', Timestamp.fromDate(tomorrow))
+      );
+      
+      const responseSnapshot = await getDocs(responseQuery);
+      
+      if (!responseSnapshot.empty) {
+        setChallengeSubmitStatus('You\'ve already completed today\'s challenge! Come back tomorrow for a new one.');
+        setSubmitting(false);
+        return;
+      }
+      
       const response: ChallengeResponse = {
         userId: user.uid,
         challengeId: dailyChallenge.id,
@@ -353,17 +419,20 @@ export default function ProfilePage() {
         const newPoints = (userData.points || 0) + 10;
         
         await updateDoc(doc(db, 'users', userDoc.id), {
-          points: newPoints
+          points: newPoints,
+          lastPointsUpdate: {
+            amount: 10,
+            reason: 'Daily Challenge Completion',
+            timestamp: new Date()
+          }
         });
         
         setUserPoints(newPoints);
       }
       
       setChallengeResponse('');
-      setChallengeSubmitStatus('Challenge response submitted successfully! You earned 10 points.');
-      
-      // Fetch a new challenge
-      fetchDailyChallenge();
+      setChallengeSubmitStatus('Challenge response submitted successfully! You earned 10 points. Come back tomorrow for a new challenge.');
+      setDailyChallenge(null); // Clear the challenge since it's completed for today
     } catch (error) {
       console.error('Error submitting challenge response:', error);
       setChallengeSubmitStatus('Failed to submit response. Please try again.');
@@ -535,6 +604,9 @@ export default function ProfilePage() {
                 {rewardStatus}
               </p>
             )}
+            
+            {/* Reward History Section */}
+            {user && <RewardHistory userId={user.uid} limit={3} />}
           </div>
         </div>
         

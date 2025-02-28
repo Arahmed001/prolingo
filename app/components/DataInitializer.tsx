@@ -5,6 +5,7 @@ import { isFirebaseInitialized } from '../../lib/firebase';
 import { addSampleQuizzes } from '../../lib/scripts/sampleQuizzes';
 import { addSampleThreads } from '../../lib/scripts/sampleThreads';
 import { addSampleProgressData } from '../../lib/scripts/sampleProgress';
+import { initializeUserRetentionData } from '../../lib/scripts/sampleUserRetentionData';
 
 export default function DataInitializer() {
   // Initialize sample data when the app starts
@@ -19,6 +20,8 @@ export default function DataInitializer() {
           await addSampleThreads();
           // Add sample progress data if none exist
           await addSampleProgressData();
+          // Initialize user retention data (challenges, points, redemptions)
+          await initializeUserRetentionData();
         } catch (error) {
           console.error('Error initializing sample data:', error);
         }
