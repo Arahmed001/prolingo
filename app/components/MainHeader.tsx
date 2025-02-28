@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLanguage } from './I18nProvider';
-import LanguageSwitcher from './LanguageSwitcher';
+import EnhancedLanguageSwitcher from './EnhancedLanguageSwitcher';
 
 export default function MainHeader() {
   const { t } = useLanguage();
@@ -10,7 +10,9 @@ export default function MainHeader() {
   return (
     <header className="w-full bg-primary py-3 px-4 sm:px-6">
       <div className="container mx-auto max-w-7xl flex justify-end items-center gap-4">
-        <LanguageSwitcher />
+        <div className="bg-white/10 backdrop-blur-sm rounded-md p-1 hover:bg-white/15 transition-colors">
+          <EnhancedLanguageSwitcher customClassName="text-white" />
+        </div>
         <div className="flex items-center gap-2">
           <Link 
             href="/login" 

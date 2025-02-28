@@ -15,7 +15,7 @@ interface NavItem {
 
 export default function Sidebar() {
   const { t } = useLanguage();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
   const sidebarRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -122,7 +122,7 @@ export default function Sidebar() {
   // Handle clicks outside sidebar to close it on mobile
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node) && isOpen) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node) && isOpen && window.innerWidth < 768) {
         setIsOpen(false);
       }
     };
@@ -159,16 +159,20 @@ export default function Sidebar() {
               aria-controls={`submenu-${item.label}`}
             >
               <span className="mr-3">{item.icon}</span>
-              <span className="flex-grow">{item.label}</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className={`h-4 w-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              {isOpen && (
+                <>
+                  <span className="flex-grow">{item.label}</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-4 w-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </>
+              )}
             </button>
           ) : (
             <Link
@@ -176,15 +180,16 @@ export default function Sidebar() {
               className={`flex items-center w-full py-2 px-4 rounded-md transition-colors ${
                 active ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700 hover:bg-gray-100'
               }`}
+              title={!isOpen ? item.label : ''}
             >
               <span className="mr-3">{item.icon}</span>
-              <span>{item.label}</span>
+              {isOpen && <span>{item.label}</span>}
             </Link>
           )}
         </div>
         
         {/* Submenu */}
-        {hasChildren && (
+        {hasChildren && isOpen && (
           <div
             id={`submenu-${item.label}`}
             className={`ml-6 mt-1 space-y-1 transition-all duration-300 overflow-hidden ${
@@ -212,7 +217,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay for mobile */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/30 z-40 md:hidden" 
@@ -246,24 +251,38 @@ export default function Sidebar() {
       <div
         ref={sidebarRef}
         id="sidebar"
-        className={`fixed top-0 left-0 bottom-0 z-50 w-64 bg-white border-r border-border transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } md:relative md:w-64 md:flex md:flex-col md:min-h-screen`}
+        className={`fixed top-0 left-0 bottom-0 z-50 bg-white border-r border-border transform transition-all duration-300 ease-in-out ${
+          isOpen ? 'w-64' : 'w-16'
+        } ${
+          !isOpen && window.innerWidth < 768 ? '-translate-x-full' : 'translate-x-0'
+        } md:relative md:flex md:flex-col md:min-h-screen`}
         aria-label="Sidebar navigation"
       >
-        {/* Logo */}
+        {/* Logo and Toggle Button */}
         <div className="p-4 flex items-center justify-between border-b border-border">
-          <Link href="/" className="flex items-center" aria-label="ProLingo home">
-            <span className="text-2xl font-bold text-primary">Pro<span className="text-secondary">Lingo</span></span>
-          </Link>
+          {isOpen ? (
+            <Link href="/" className="flex items-center" aria-label="ProLingo home">
+              <span className="text-2xl font-bold text-primary">Pro<span className="text-secondary">Lingo</span></span>
+            </Link>
+          ) : (
+            <Link href="/" className="flex items-center" aria-label="ProLingo home">
+              <span className="text-2xl font-bold text-primary">PL</span>
+            </Link>
+          )}
+          
+          {/* Toggle button for all screen sizes */}
           <button
             type="button"
-            className="md:hidden p-2 rounded-md text-gray-500"
+            className="p-2 rounded-md text-gray-500 hover:bg-gray-100"
             onClick={toggleSidebar}
-            aria-label="Close sidebar"
+            aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
           >
             <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              {isOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              )}
             </svg>
           </button>
         </div>
