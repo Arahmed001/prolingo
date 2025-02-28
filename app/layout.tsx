@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Poppins, Open_Sans } from "next/font/google"
 import Footer from './components/Footer'
 import Sidebar from './components/Sidebar'
+import MainHeader from './components/MainHeader'
 import AccessibilityProvider from './components/AccessibilityProvider'
 import DataInitializer from './components/DataInitializer'
 import I18nProvider from './components/I18nProvider'
@@ -40,6 +41,7 @@ function RootLayout({
           <div className="flex min-h-screen">
             <Sidebar />
             <div className="flex-1 flex flex-col">
+              <MainHeader />
               <main className="flex-grow">
                 {children}
               </main>

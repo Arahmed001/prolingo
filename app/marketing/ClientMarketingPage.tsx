@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { db } from '../../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -38,6 +39,7 @@ export default function ClientMarketingPage() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [appImageError, setAppImageError] = useState(false);
   
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
@@ -79,6 +81,11 @@ export default function ClientMarketingPage() {
       setSubmitting(false);
     }
   };
+
+  // Helper function to generate placeholder avatar
+  const getInitialsAvatar = (name: string) => {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=1E40AF&color=fff&size=150`;
+  };
   
   return (
     <main id="main-content" className="flex-grow">
@@ -97,12 +104,25 @@ export default function ClientMarketingPage() {
             <div className="relative w-full max-w-3xl">
               <div className="absolute inset-0 bg-blue-400 opacity-20 rounded-lg transform -rotate-1"></div>
               <div className="relative bg-white p-3 rounded-lg shadow-xl">
-                <img 
-                  src="/images/app-preview.png" 
-                  alt="ProLingo App Preview" 
-                  className="w-full h-auto rounded"
-                  onError={(e) => e.currentTarget.src = 'https://via.placeholder.com/800x450/1E40AF/FFFFFF?text=ProLingo+App+Preview'}
-                />
+                {appImageError ? (
+                  <div className="w-full h-64 md:h-[450px] bg-gray-100 rounded flex items-center justify-center">
+                    <div className="text-center p-8">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-blue-700/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <p className="mt-4 text-gray-600 font-medium">ProLingo App Preview</p>
+                    </div>
+                  </div>
+                ) : (
+                  <Image 
+                    src="/images/app-preview.png" 
+                    alt="ProLingo App Preview" 
+                    width={800}
+                    height={450}
+                    className="w-full h-auto rounded"
+                    onError={() => setAppImageError(true)}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -134,21 +154,18 @@ export default function ClientMarketingPage() {
                 <p className="text-gray-700 mb-6 italic">"{testimonial.quote}"</p>
                 
                 <div className="flex items-center">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-                    {testimonial.image ? (
-                      <img 
-                        src={testimonial.image} 
-                        alt={testimonial.name} 
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${testimonial.name.replace(' ', '+')}&background=1E40AF&color=fff`;
-                        }}
-                      />
-                    ) : (
-                      <span className="text-blue-700 font-bold text-xl">
-                        {testimonial.name.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    )}
+                  <div className="h-12 w-12 rounded-full overflow-hidden bg-blue-700 flex-shrink-0">
+                    <Image 
+                      src={testimonial.image || getInitialsAvatar(testimonial.name)}
+                      alt={testimonial.name} 
+                      width={48}
+                      height={48}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        // If the image fails, set the src to the initials avatar
+                        e.currentTarget.src = getInitialsAvatar(testimonial.name);
+                      }}
+                    />
                   </div>
                   <div className="ml-3">
                     <h3 className="font-semibold text-gray-800">{testimonial.name}</h3>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from './components/I18nProvider';
@@ -19,6 +19,7 @@ interface ClientHomePageProps {
 export default function ClientHomePage({ features }: ClientHomePageProps) {
   // Use our custom language hook
   const { t } = useLanguage();
+  const [imgError, setImgError] = useState(false);
   
   // Add performance monitoring
   usePerformanceMonitoring('/');
@@ -82,17 +83,27 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
                 </div>
               </div>
               <div className="w-full md:w-1/2 mt-8 md:mt-0">
-                <div className="relative w-full h-80 sm:h-96 md:h-[500px]">
-                  <Image
-                    src="/hero-image.png"
-                    alt="Students learning languages with ProLingo platform"
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-contain"
-                    loading="lazy"
-                    priority={false}
-                    unoptimized={true}
-                  />
+                <div className="relative w-full h-80 sm:h-96 md:h-[500px] bg-primary/40 rounded-lg">
+                  {imgError ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center p-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="mt-4 text-white/80">Students learning languages with ProLingo platform</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <Image
+                      src="/hero-image.png"
+                      alt="Students learning languages with ProLingo platform"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-contain"
+                      onError={() => setImgError(true)}
+                      priority={true}
+                    />
+                  )}
                 </div>
               </div>
             </div>

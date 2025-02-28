@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from './I18nProvider';
-import LanguageSwitcher from './LanguageSwitcher';
 import { usePathname } from 'next/navigation';
 
 // Interface for navigation items
@@ -273,27 +272,6 @@ export default function Sidebar() {
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           {navigationItems.map(renderNavItem)}
         </nav>
-        
-        {/* Bottom Section - Auth & Language */}
-        <div className="p-4 border-t border-border">
-          <div className="flex flex-col space-y-4">
-            <LanguageSwitcher />
-            <div className="flex space-x-2">
-              <Link 
-                href="/login" 
-                className="flex-1 text-center px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary/5"
-              >
-                {t('login')}
-              </Link>
-              <Link 
-                href="/register" 
-                className="flex-1 text-center px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-              >
-                {t('signUp')}
-              </Link>
-            </div>
-          </div>
-        </div>
       </div>
     </>
   );
