@@ -96,6 +96,32 @@ const addSampleQuizData = async (lessonId: string) => {
   }
 };
 
+// Add a toast notification component
+const Toast = ({ message, onClose }: { message: string; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center">
+      <span>{message}</span>
+      <button 
+        onClick={onClose}
+        className="ml-2 text-white focus:outline-none"
+        aria-label="Close notification"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  );
+};
+
 export default function QuizPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -105,6 +131,8 @@ export default function QuizPage({ params }: { params: { id: string } }) {
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [userLevel, setUserLevel] = useState<string>('A1');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -223,6 +251,39 @@ export default function QuizPage({ params }: { params: { id: string } }) {
     }
   };
 
+  // Share quiz score function
+  const handleShareScore = async () => {
+    if (!auth.currentUser) {
+      router.push('/login');
+      return;
+    }
+
+    const shareUrl = `https://prolingo.vercel.app/quiz/${params.id}`;
+    const shareTitle = `My ProLingo Quiz Score`;
+    const correctAnswers = Object.keys(answers).filter(key => 
+      answers[parseInt(key)] === questions[parseInt(key)]?.answer
+    ).length;
+    const totalQuestions = questions.length;
+    
+    const shareText = `I scored ${correctAnswers}/${totalQuestions} on the ${currentDifficulty} level quiz in ProLingo!`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(`${shareText} Check it out at ${shareUrl}`);
+        setToastMessage('Score copied to clipboard!');
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   const renderQuestion = (question: QuizQuestion, index: number) => {
     switch (question.type) {
       case 'multiple':
@@ -291,71 +352,95 @@ export default function QuizPage({ params }: { params: { id: string } }) {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
-      <main id="main-content" id="main-content" className="flex-grow bg-gray-50 py-8">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          {loading ? (
-            <div className="text-center">
-              <div aria-live="polite" className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading quiz questions...</p>
-            </div>
-          ) : (
-            <>
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-gray-900">Lesson Quiz</h1>
-                  <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                    Difficulty: {currentDifficulty}
+      <main className="flex-grow">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="loader"></div>
+          </div>
+        ) : (
+          <div className="container mx-auto px-4 py-8">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-primary mb-2">Quiz: {params.id}</h1>
+                <div className="flex items-center space-x-4">
+                  <p className="text-gray-600">Difficulty level:</p>
+                  <div className="flex space-x-2">
+                    {['A1', 'A2', 'B1', 'B2', 'C1'].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setCurrentDifficulty(level)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          currentDifficulty === level
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
                   </div>
                 </div>
+              </div>
 
-                <form aria-label="Form" aria-label="Form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-                  {questions.map((question, index) => (
-                    <div key={index} className="mb-8 pb-6 border-b border-gray-200 last:border-0">
-                      {renderQuestion(question, index)}
-                    </div>
-                  ))}
-
+              {questions.length > 0 ? (
+                <form onSubmit={handleSubmit}>
+                  {questions.map((question, index) => renderQuestion(question, index))}
+                  
                   {!submitted && (
                     <button
                       type="submit"
-                      className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="mt-6 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
                     >
-                      Submit Quiz
+                      Submit Answers
                     </button>
                   )}
                 </form>
+              ) : (
+                <p className="text-center py-8 text-gray-600">No questions found for this difficulty level.</p>
+              )}
 
-                {submitted && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h2 className="text-xl font-semibold mb-2">Quiz Results</h2>
-                    <p className="text-lg">
-                      Your score: <span className="font-bold text-blue-600">{score}%</span>
-                    </p>
-                    <p className="mt-2 text-gray-600">
-                      {score >= 80 ? (
-                        'Great job! You\'re ready for more challenging questions.'
-                      ) : score < 50 ? (
-                        'Keep practicing! We\'ll adjust the difficulty to help you improve.'
-                      ) : (
-                        'Good effort! Keep practicing to improve your score.'
-                      )}
-                    </p>
+              {submitted && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h2 className="text-xl font-semibold mb-2">Quiz Results</h2>
+                  <p className="text-lg">
+                    Your score: <span className="font-bold text-blue-600">{score}%</span>
+                  </p>
+                  <p className="mt-2 text-gray-600">
+                    {score >= 80 ? (
+                      'Great job! You\'re ready for more challenging questions.'
+                    ) : score < 50 ? (
+                      'Keep practicing! We\'ll adjust the difficulty to help you improve.'
+                    ) : (
+                      'Good effort! Keep practicing to improve your score.'
+                    )}
+                  </p>
+                  
+                  <div className="mt-4 flex space-x-4">
                     <button
-                      onClick={() => router.push(`/lesson/${params.id} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}`)}
-                      className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      onClick={handleShareScore}
+                      className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary-dark transition-colors flex items-center"
+                      aria-label="Share score"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                      </svg>
+                      Share Score
+                    </button>
+                    <button
+                      onClick={() => router.push(`/lessons/${params.id}`)}
+                      className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                       Back to Lesson
                     </button>
                   </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
-
       <Footer />
+      {showToast && <Toast message={toastMessage} onClose={() => setShowToast(false)} />}
     </div>
   );
 } 

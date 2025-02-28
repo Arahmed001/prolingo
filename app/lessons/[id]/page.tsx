@@ -61,6 +61,32 @@ interface Progress {
 // Prevent static prerendering
 export const dynamic = 'force-dynamic';
 
+// Add a toast notification component
+const Toast = ({ message, onClose }: { message: string; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center">
+      <span>{message}</span>
+      <button 
+        onClick={onClose}
+        className="ml-2 text-white focus:outline-none"
+        aria-label="Close notification"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  );
+};
+
 export default function LessonPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -71,6 +97,8 @@ export default function LessonPage() {
   const [score, setScore] = useState<number>(0);
   const [quizCompleted, setQuizCompleted] = useState<boolean>(false);
   const [userProgress, setUserProgress] = useState<Progress[]>([]);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   
   const router = useRouter();
   const params = useParams();
@@ -419,6 +447,34 @@ export default function LessonPage() {
     ) : null
   );
 
+  // Share lesson function
+  const handleShareLesson = async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    const shareUrl = `https://prolingo.vercel.app/lessons/${lessonId}`;
+    const shareTitle = `Check out this lesson: ${lesson?.title || 'Language Lesson'}`;
+    const shareText = `I'm learning ${lesson?.title || 'a new language'} on ProLingo!`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setToastMessage('Link copied to clipboard!');
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   // Show loading state
   if (loading || !lesson) {
     return (
@@ -444,12 +500,24 @@ export default function LessonPage() {
                   <h1 className="text-3xl font-bold text-primary">{lesson.title}</h1>
                   <p className="text-gray-600 mt-1">Level: {lesson.level} • Difficulty: {lesson.difficulty}</p>
                 </div>
-                <button
-                  onClick={handleStartQuiz} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
-                  className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-                >
-                  Start Quiz
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleShareLesson}
+                    className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary-dark transition-colors flex items-center"
+                    aria-label="Share lesson"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                    </svg>
+                    Share Lesson
+                  </button>
+                  <button
+                    onClick={handleStartQuiz} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
+                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                  >
+                    Take Quiz
+                  </button>
+                </div>
               </div>
               
               <div className="mb-8">
@@ -592,6 +660,7 @@ export default function LessonPage() {
         </div>
       </main>
       <Footer />
+      {showToast && <Toast message={toastMessage} onClose={() => setShowToast(false)} />}
     </div>
   );
 } 
