@@ -8,11 +8,12 @@ import { getLessonById } from '../../../lib/services/lessonService';
 import { Lesson, VocabularyItem } from '../../../lib/types';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc, collection, addDoc, serverTimestamp, getDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { doc, updateDoc, collection, addDoc, serverTimestamp, getDoc, query, where, getDocs, orderBy, limit, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase/init';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { usePerformanceMonitoring } from '../../../lib/performance';
+import CustomToast from '../../components/Toast';
 
 // Base64 blur placeholders for images
 const blurPlaceholders = {
@@ -47,6 +48,7 @@ interface ExtendedLesson extends Lesson {
     text: string;
     tips: string[];
   };
+  aiContent?: AIContent;
 }
 
 interface Progress {
@@ -87,6 +89,31 @@ const Toast = ({ message, onClose }: { message: string; onClose: () => void }) =
   );
 };
 
+// Enhanced interfaces for AI content - rename to avoid conflicts
+interface AIVocabularyItem {
+  term?: string;
+  word?: string;
+  definition: string;
+  imageUrl?: string;
+  usage?: string; // Added for AI content
+}
+
+interface AIGrammarPoint {
+  question: string;
+  answer?: string;
+  rule?: string; // Added for AI content
+  example?: string; // Added for AI content
+}
+
+interface AIContent {
+  sentences: string[];
+  vocab: AIVocabularyItem[];
+  grammar: {
+    rule: string;
+    example: string;
+  };
+}
+
 export default function LessonPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -99,6 +126,9 @@ export default function LessonPage() {
   const [userProgress, setUserProgress] = useState<Progress[]>([]);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  // AI content related states
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [showAIContent, setShowAIContent] = useState(false);
   
   const router = useRouter();
   const params = useParams();
@@ -426,23 +456,27 @@ export default function LessonPage() {
     </div>
   );
 
-  // Replace vocabulary image rendering with optimized version
-  const renderVocabularyImage = (item: VocabularyItem) => (
-    item.imageUrl ? (
-      <div className="relative h-20 w-20 mx-auto mb-2">
-        <Image
-          src={item.imageUrl}
-          alt={item.term}
-          fill
-          sizes="80px"
-          className="object-cover rounded-md"
-          loading="lazy"
-          placeholder="blur"
-          blurDataURL={blurPlaceholders.vocabulary}
-        />
-      </div>
-    ) : null
-  );
+  // Update renderVocabularyImage function to handle both types correctly
+  const renderVocabularyImage = (item: AIVocabularyItem | VocabularyItem) => {
+    // If it's an AIVocabularyItem with imageUrl
+    if ('imageUrl' in item && item.imageUrl) {
+      return (
+        <div className="relative h-20 w-20 mx-auto mb-2">
+          <Image
+            src={item.imageUrl}
+            alt={'term' in item && item.term ? String(item.term) : 'word' in item && item.word ? item.word : ''}
+            fill
+            sizes="80px"
+            className="object-cover rounded-md"
+            loading="lazy"
+            placeholder="blur"
+            blurDataURL={blurPlaceholders.vocabulary}
+          />
+        </div>
+      );
+    }
+    return null;
+  };
 
   // Share lesson function
   const handleShareLesson = async () => {
@@ -472,12 +506,194 @@ export default function LessonPage() {
     }
   };
 
+  // Generate AI content based on user's CEFR level
+  const generateAIContent = async () => {
+    if (!user || !lessonId || !lesson) return;
+    
+    setIsGeneratingAI(true);
+    setToastMessage('Generating AI content...');
+    setShowToast(true);
+    
+    try {
+      // Get user's CEFR level from profile or default to A1
+      const userDocRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userDocRef);
+      const userCEFRLevel = userSnap.exists() ? userSnap.data().cefrLevel || 'A1' : 'A1';
+      
+      // Sample AI content based on lesson and CEFR level
+      // In a real implementation, this would be an API call to an AI service
+      const aiContent = createSampleAIContent(lesson.title, userCEFRLevel);
+      
+      // Update lesson document with AI content
+      const lessonRef = doc(db, 'lessons', lessonId);
+      await updateDoc(lessonRef, {
+        aiContent: aiContent
+      });
+      
+      // Update local state
+      setLesson({
+        ...lesson,
+        aiContent
+      });
+      
+      setToastMessage('AI content generated successfully!');
+      setShowToast(true);
+      setShowAIContent(true);
+    } catch (error) {
+      console.error('Error generating AI content:', error);
+      setToastMessage('Failed to generate AI content. Please try again.');
+      setShowToast(true);
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+  
+  // Create sample AI content based on lesson topic and CEFR level
+  const createSampleAIContent = (topic: string, cefrLevel: string): AIContent => {
+    // Tailor content complexity based on CEFR level
+    const complexity = cefrLevel === 'A1' ? 'basic' : 
+                       cefrLevel === 'A2' ? 'elementary' : 
+                       cefrLevel === 'B1' ? 'intermediate' : 
+                       cefrLevel === 'B2' ? 'upper intermediate' : 
+                       cefrLevel === 'C1' ? 'advanced' : 'proficient';
+    
+    // Sample sentences for different lesson topics
+    const sentencesByTopic: {[key: string]: string[]} = {
+      'Greetings': [
+        'Hello, how are you today?',
+        'Good morning! It\'s nice to meet you.',
+        'Hi there! My name is Sarah.',
+        'Good evening, everyone!',
+        'Hey! Long time no see!',
+        'How have you been lately?',
+        'It\'s a pleasure to meet you.',
+        'Welcome to our class!',
+        'I hope you\'re having a good day.',
+        'See you tomorrow!'
+      ],
+      'Numbers': [
+        'I need to buy three apples and two oranges.',
+        'The building has twenty-five floors.',
+        'My phone number is 555-123-4567.',
+        'She scored ninety-eight on her math test.',
+        'There are seven days in a week.',
+        'This costs fifteen dollars.',
+        'The temperature is twenty-two degrees today.',
+        'He is thirty-five years old.',
+        'The train arrives in forty-five minutes.',
+        'We need fifty chairs for the event.'
+      ],
+      // Default set for any other topic
+      'default': [
+        'This is the first example sentence for ' + topic + '.',
+        'Learning about ' + topic + ' can be very interesting.',
+        'Many people find ' + topic + ' challenging at first.',
+        'Practice makes perfect when studying ' + topic + '.',
+        'Let\'s explore some key concepts in ' + topic + '.',
+        'Understanding ' + topic + ' will help you communicate better.',
+        'There are many aspects to consider in ' + topic + '.',
+        'The basics of ' + topic + ' are essential for beginners.',
+        'Advanced learners can explore complex ' + topic + ' structures.',
+        'Don\'t forget to practice ' + topic + ' regularly!'
+      ]
+    };
+    
+    // Select sentences based on topic or default if not found
+    const sentences = sentencesByTopic[topic] || sentencesByTopic['default'];
+    
+    // Create vocab items
+    const vocabItems: AIVocabularyItem[] = [
+      { 
+        word: 'example', 
+        definition: 'Something that serves as a pattern to be imitated',
+        usage: 'This is an example of how to use the word correctly.' 
+      },
+      { 
+        word: 'practice', 
+        definition: 'The act of doing something regularly to improve your skill',
+        usage: 'Daily practice will help you learn faster.' 
+      },
+      { 
+        word: 'understand', 
+        definition: 'To comprehend or grasp the meaning of something',
+        usage: 'I understand the concept now, thank you.' 
+      },
+      { 
+        word: 'improve', 
+        definition: 'To make or become better',
+        usage: 'My skills have improved since I started taking lessons.' 
+      },
+      { 
+        word: 'communicate', 
+        definition: 'To share or exchange information with others',
+        usage: 'It\'s important to communicate clearly in any language.' 
+      }
+    ];
+    
+    // Create grammar rule based on CEFR level
+    let grammarRule, grammarExample;
+    
+    if (cefrLevel === 'A1' || cefrLevel === 'A2') {
+      grammarRule = 'Present Simple Tense: Use it for facts, habits, and routines.';
+      grammarExample = 'I study languages every day. She likes coffee.';
+    } else if (cefrLevel === 'B1' || cefrLevel === 'B2') {
+      grammarRule = 'Present Perfect vs Past Simple: Use Present Perfect for experiences and Past Simple for completed actions at a specific time.';
+      grammarExample = 'I have visited Paris three times. I visited Paris last summer.';
+    } else {
+      grammarRule = 'Conditional Structures: Use different conditionals to express various hypothetical situations.';
+      grammarExample = 'If I had studied harder, I would have passed the exam. If I were you, I would take that opportunity.';
+    }
+    
+    return {
+      sentences,
+      vocab: vocabItems,
+      grammar: {
+        rule: grammarRule,
+        example: grammarExample
+      }
+    };
+  };
+  
+  // Check if AI content exists, otherwise create sample content
+  useEffect(() => {
+    if (!user || !lessonId || !lesson) return;
+    
+    const checkAndCreateAIContent = async () => {
+      if (!lesson.aiContent) {
+        const lessonRef = doc(db, 'lessons', lessonId);
+        const lessonSnap = await getDoc(lessonRef);
+        
+        if (lessonSnap.exists() && !lessonSnap.data().aiContent) {
+          // Create sample AI content if it doesn't exist
+          const sampleAIContent = createSampleAIContent(lesson.title, lesson.level);
+          
+          try {
+            await updateDoc(lessonRef, {
+              aiContent: sampleAIContent
+            });
+            
+            setLesson(prev => prev ? {
+              ...prev,
+              aiContent: sampleAIContent
+            } : null);
+          } catch (error) {
+            console.error('Error creating sample AI content:', error);
+          }
+        }
+      } else {
+        setShowAIContent(true);
+      }
+    };
+    
+    checkAndCreateAIContent();
+  }, [user, lessonId, lesson]);
+
   // Show loading state
   if (loading || !lesson) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main id="main-content" id="main-content" className="flex-grow flex items-center justify-center">
+        <main id="main-content" className="flex-grow flex items-center justify-center">
           <div className="loader">Loading...</div>
         </main>
         <Footer />
@@ -488,7 +704,7 @@ export default function LessonPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main id="main-content" id="main-content" className="flex-grow container mx-auto px-4 py-8">
+      <main id="main-content" className="flex-grow container mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-lg p-6">
           {!quizMode ? (
             <div>
@@ -509,7 +725,7 @@ export default function LessonPage() {
                     Share Lesson
                   </button>
                   <button
-                    onClick={handleStartQuiz} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
+                    onClick={handleStartQuiz}
                     className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
                   >
                     Take Quiz
@@ -529,6 +745,79 @@ export default function LessonPage() {
                     <p key={index} className="mb-4">{paragraph}</p>
                   ))}
                 </div>
+              </div>
+              
+              {/* AI Generated Content Section */}
+              <div className="mb-8 border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-primary">AI-Generated Content</h2>
+                  <button
+                    onClick={generateAIContent}
+                    disabled={isGeneratingAI}
+                    className={`px-4 py-2 rounded-lg text-white ${isGeneratingAI ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} transition-colors flex items-center`}
+                  >
+                    {isGeneratingAI ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                        </svg>
+                        Refresh AI Content
+                      </>
+                    )}
+                  </button>
+                </div>
+                
+                {lesson.aiContent && showAIContent ? (
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Practice Sentences</h3>
+                      <div className="space-y-2">
+                        {lesson.aiContent.sentences.map((sentence, index) => (
+                          <div key={index} className="p-2 bg-gray-50 rounded border-l-4 border-indigo-300">
+                            {sentence}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Vocabulary</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {lesson.aiContent.vocab.map((item, index) => (
+                          <div key={index} className="p-3 bg-gray-50 rounded border border-indigo-100">
+                            <div className="font-semibold text-indigo-800">{item.word}</div>
+                            <div className="text-gray-700 text-sm">{item.definition}</div>
+                            <div className="text-gray-600 text-sm italic mt-1">"{item.usage}"</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Grammar Focus</h3>
+                      <div className="p-3 bg-gray-50 rounded">
+                        <div className="font-medium mb-1">{lesson.aiContent.grammar.rule}</div>
+                        <div className="text-gray-700 italic">Example: {lesson.aiContent.grammar.example}</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">
+                      {isGeneratingAI ? 
+                        'Generating personalized content based on your proficiency level...' : 
+                        'Click the button above to generate personalized AI content for this lesson.'}
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -588,7 +877,8 @@ export default function LessonPage() {
                       {lesson.quiz[currentQuizIndex].options.map((option: number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | PromiseLikeOfReactNode | SetStateAction<string> | null | undefined, index: Key | null | undefined) => (
                         <div 
                           key={index}
-                          onClick={() => setSelectedAnswer(String(option))} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
+                          onClick={() => setSelectedAnswer(String(option))}
+                          onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click(); }}
                           className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                             selectedAnswer === option 
                               ? 'border-primary bg-primary bg-opacity-10' 
@@ -612,7 +902,8 @@ export default function LessonPage() {
                   
                   <div className="flex justify-end">
                     <button
-                      onClick={handleSubmitAnswer} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
+                      onClick={handleSubmitAnswer}
+                      onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click(); }}
                       disabled={!selectedAnswer}
                       className={`px-6 py-2 rounded-lg ${
                         selectedAnswer 
@@ -638,13 +929,15 @@ export default function LessonPage() {
                   
                   <div className="space-y-3">
                     <button
-                      onClick={() => setQuizMode(false)} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
+                      onClick={() => setQuizMode(false)}
+                      onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click(); }}
                       className="block w-full sm:w-auto sm:inline-block px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
                     >
                       Return to Lesson
                     </button>
                     <button
-                      onClick={handleStartQuiz} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
+                      onClick={handleStartQuiz}
+                      onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click(); }}
                       className="block w-full sm:w-auto sm:inline-block px-6 py-2 bg-white border border-primary text-primary rounded-lg hover:bg-gray-50 transition-colors sm:ml-3"
                     >
                       Retry Quiz
@@ -657,7 +950,7 @@ export default function LessonPage() {
         </div>
       </main>
       <Footer />
-      {showToast && <Toast message={toastMessage} onClose={() => setShowToast(false)} />}
+      {showToast && <CustomToast message={toastMessage} onClose={() => setShowToast(false)} />}
     </div>
   );
 } 
