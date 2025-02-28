@@ -21,7 +21,7 @@ interface User {
 export default function LeaderboardPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsAuthenticated(!!user);
@@ -107,8 +107,8 @@ export default function LeaderboardPage() {
                     </div>
                   </div>
                 </div>
-              </div>
-              
+        </div>
+
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-md p-6 text-white">
                 <h2 className="text-xl font-bold mb-3">Weekly Challenge</h2>
                 <p className="mb-4">Complete 5 lessons this week to earn the "Weekly Champion" badge and 50 bonus XP!</p>
@@ -176,13 +176,13 @@ export default function LeaderboardPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Michael Chen</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1,120 XP</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Gold Trophy + Premium Month</td>
-                  </tr>
+                      </tr>
                   <tr>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">February 2023</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Emma Rodriguez</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">980 XP</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Gold Trophy + Premium Month</td>
-                  </tr>
+                    </tr>
                 </tbody>
               </table>
             </div>

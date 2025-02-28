@@ -8,12 +8,14 @@ import { getLessonById } from '../../../lib/services/lessonService';
 import { Lesson, VocabularyItem } from '../../../lib/types';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc, collection, addDoc, serverTimestamp, getDoc, query, where, getDocs, orderBy, limit, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, collection, addDoc, serverTimestamp, getDoc, query, where, getDocs, orderBy, limit, arrayUnion, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase/init';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { usePerformanceMonitoring } from '../../../lib/performance';
 import CustomToast from '../../components/Toast';
+// Import for HTML parsing
+import parse from 'html-react-parser';
 
 // Base64 blur placeholders for images
 const blurPlaceholders = {
@@ -114,6 +116,27 @@ interface AIContent {
   };
 }
 
+// New interface for slide-based lesson format
+interface LessonSlide {
+  id: string;
+  title: string;
+  type: 'intro' | 'content' | 'vocabulary' | 'grammar' | 'examples' | 'practice' | 'video' | 'audio' | 'quiz' | 'objectives';
+  content: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  audioUrl?: string;
+  vocabulary?: AIVocabularyItem[];
+  grammarPoint?: {
+    rule: string;
+    example: string;
+  };
+  examples?: string[];
+  notes?: string; // Instructor notes (visible only to teachers)
+  cefrCriteria?: string[]; // CEFR criteria this slide fulfills
+  objectives?: string[]; // Learning objectives for this slide
+  isHtml?: boolean; // Flag to indicate if content should be rendered as HTML
+}
+
 export default function LessonPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -134,6 +157,13 @@ export default function LessonPage() {
   const [showLessonPlan, setShowLessonPlan] = useState(false);
   const [lessonPlan, setLessonPlan] = useState<any>(null);
   const [isGeneratingLessonPlan, setIsGeneratingLessonPlan] = useState(false);
+  
+  // Slide-based lesson states
+  const [lessonSlides, setLessonSlides] = useState<LessonSlide[]>([]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [slideViewMode, setSlideViewMode] = useState(false);
+  const slideContainerRef = useRef<HTMLDivElement>(null);
   
   const router = useRouter();
   const params = useParams();
@@ -242,7 +272,7 @@ export default function LessonPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // Load lesson data
+  // Load lesson data and convert to slides
   useEffect(() => {
     if (!user || !lessonId) return;
 
@@ -252,7 +282,11 @@ export default function LessonPage() {
         const lessonSnap = await getDoc(lessonRef);
         
         if (lessonSnap.exists()) {
-          setLesson({ id: lessonSnap.id, ...lessonSnap.data() } as ExtendedLesson);
+          const lessonData = { id: lessonSnap.id, ...lessonSnap.data() } as ExtendedLesson;
+          setLesson(lessonData);
+          
+          // Convert lesson content to slides
+          convertLessonToSlides(lessonData);
         } else {
           console.error("Lesson not found");
           router.push('/lessons');
@@ -265,6 +299,163 @@ export default function LessonPage() {
     fetchLesson();
   }, [user, lessonId, router]);
 
+  // Convert lesson data to slide format
+  const convertLessonToSlides = (lessonData: ExtendedLesson) => {
+    const slides: LessonSlide[] = [];
+    
+    // Objectives slide (new)
+    slides.push({
+      id: 'objectives',
+      title: 'Lesson Objectives',
+      type: 'objectives',
+      content: 'By the end of this lesson, you should be able to:',
+      objectives: generateObjectives(lessonData.title, lessonData.level),
+      cefrCriteria: generateCefrCriteria(lessonData.level)
+    });
+    
+    // Intro slide
+    slides.push({
+      id: 'intro',
+      title: lessonData.title,
+      type: 'intro',
+      content: lessonData.description || '',
+      imageUrl: lessonData.imageUrl
+    });
+    
+    // Content slides - split by paragraphs
+    if (lessonData.content) {
+      // Check if content contains HTML tags
+      const containsHtml = /<[a-z][\s\S]*>/i.test(lessonData.content);
+      
+      if (containsHtml) {
+        // If it contains HTML, create a single slide with the HTML content
+        slides.push({
+          id: `content-html`,
+          title: `${lessonData.title} - Content`,
+          type: 'content',
+          content: lessonData.content,
+          isHtml: true
+        });
+      } else {
+        // Otherwise split by paragraphs as before
+        const paragraphs = lessonData.content.split('\n\n');
+        paragraphs.forEach((paragraph, index) => {
+          if (paragraph.trim()) {
+            slides.push({
+              id: `content-${index}`,
+              title: `${lessonData.title} - Content`,
+              type: 'content',
+              content: paragraph.trim()
+            });
+          }
+        });
+      }
+    }
+    
+    // Vocabulary slides - group by 3 items per slide
+    if (lessonData.vocabulary && lessonData.vocabulary.length > 0) {
+      const vocabChunks = [];
+      for (let i = 0; i < lessonData.vocabulary.length; i += 3) {
+        vocabChunks.push(lessonData.vocabulary.slice(i, i + 3));
+      }
+      
+      vocabChunks.forEach((chunk, index) => {
+        slides.push({
+          id: `vocab-${index}`,
+          title: 'Vocabulary',
+          type: 'vocabulary',
+          content: 'Learn the following vocabulary words:',
+          vocabulary: chunk.map(item => ({
+            word: item.word,
+            definition: item.definition,
+            term: item.term ? String(item.term) : undefined
+          }))
+        });
+      });
+    }
+    
+    // Grammar slides
+    if (lessonData.grammar && lessonData.grammar.length > 0) {
+      lessonData.grammar.forEach((grammarItem, index) => {
+        slides.push({
+          id: `grammar-${index}`,
+          title: 'Grammar Point',
+          type: 'grammar',
+          content: grammarItem.question,
+          grammarPoint: {
+            rule: grammarItem.answer,
+            example: grammarItem.explanation || 'No example provided'
+          }
+        });
+      });
+    }
+    
+    // Example sentences slide
+    if (lessonData.examples && lessonData.examples.length > 0) {
+      slides.push({
+        id: 'examples',
+        title: 'Example Sentences',
+        type: 'examples',
+        content: 'Practice with these examples:',
+        examples: lessonData.examples
+      });
+    } else if (lessonData.aiContent?.sentences) {
+      slides.push({
+        id: 'ai-examples',
+        title: 'Practice Sentences',
+        type: 'examples',
+        content: 'Practice with these examples:',
+        examples: lessonData.aiContent.sentences
+      });
+    }
+    
+    // If there's audio content
+    if (lessonData.audioUrl) {
+      slides.push({
+        id: 'audio',
+        title: 'Pronunciation',
+        type: 'audio',
+        content: 'Listen to the correct pronunciation:',
+        audioUrl: lessonData.audioUrl
+      });
+    }
+    
+    // AI content slides
+    if (lessonData.aiContent) {
+      // Grammar focus slide
+      slides.push({
+        id: 'ai-grammar',
+        title: 'Grammar Focus',
+        type: 'grammar',
+        content: 'Key grammar point:',
+        grammarPoint: {
+          rule: lessonData.aiContent.grammar.rule,
+          example: lessonData.aiContent.grammar.example
+        }
+      });
+      
+      // Vocabulary from AI content
+      if (lessonData.aiContent.vocab && lessonData.aiContent.vocab.length > 0) {
+        const aiVocabChunks = [];
+        for (let i = 0; i < lessonData.aiContent.vocab.length; i += 3) {
+          aiVocabChunks.push(lessonData.aiContent.vocab.slice(i, i + 3));
+        }
+        
+        aiVocabChunks.forEach((chunk, index) => {
+          slides.push({
+            id: `ai-vocab-${index}`,
+            title: 'AI Vocabulary',
+            type: 'vocabulary',
+            content: 'Learn these additional words:',
+            vocabulary: chunk
+          });
+        });
+      }
+    }
+    
+    setLessonSlides(slides);
+  };
+  
   // Load user progress
   useEffect(() => {
     if (!user || !lessonId) return;
@@ -287,9 +478,6 @@ export default function LessonPage() {
         });
         
         setUserProgress(progressData);
-        
-        // Check if we need to adjust difficulty
-        adjustLessonDifficulty(progressData);
       } catch (error) {
         console.error("Error fetching user progress:", error);
       }
@@ -297,107 +485,83 @@ export default function LessonPage() {
 
     fetchUserProgress();
   }, [user, lessonId]);
-
-  // Adjust lesson difficulty based on quiz scores
-  const adjustLessonDifficulty = async (progress: Progress[]) => {
-    if (!lesson || progress.length < 3) return;
-    
-    // Calculate average score of last 3 quizzes
-    const totalScore = progress.reduce((sum, p) => sum + p.score, 0);
-    const averageScore = totalScore / progress.length;
-    
-    // Get current lesson difficulty level
-    const currentLevel = lesson.level; // e.g., "A1", "A2", "B1", etc.
-    
-    try {
-      // If average score >= 80%, increase difficulty
-      if (averageScore >= 80) {
-        let newContent = lesson.content || '';
-        let newVocabulary = [...(lesson.vocabulary || [])];
-        let newGrammar = [...(lesson.grammar || [])];
-        let newLevel = currentLevel;
-        
-        // Adjust content based on current level
-        if (currentLevel === 'A1') {
-          newLevel = 'A2';
-          newContent += "\n\nLet's explore more advanced concepts. Discuss your daily routine in more detail.";
-          newVocabulary.push({
-            word: 'routine', definition: '',
-            term: undefined
-          }, { word: 'schedule', definition: '', term: undefined }, { word: 'appointment', definition: '', term: undefined }, { word: 'commute', definition: '', term: undefined });
-          newGrammar.push({ question: 'How do you use present continuous tense?', answer: 'Use it for actions happening now: subject + am/is/are + verb-ing' }, { question: 'When do you use frequency adverbs?', answer: 'Use them to describe how often something happens' });
-        } else if (currentLevel === 'A2') {
-          newLevel = 'B1';
-          newContent += "\n\nNow let's discuss hypothetical situations and your preferences.";
-          newVocabulary.push({
-            word: 'preference', definition: '',
-            term: undefined
-          }, { word: 'hypothesis', definition: '', term: undefined }, { word: 'condition', definition: '', term: undefined }, { word: 'possibility', definition: '', term: undefined });
-          newGrammar.push({ question: 'How do you form conditional tenses?', answer: 'Use if-clauses with different verb forms depending on the type of conditional' }, { question: 'How do you use modal verbs for possibility?', answer: 'Use might, may, could to express different degrees of possibility' });
-        }
-        
-        // Update lesson in Firestore
-        const lessonRef = doc(db, 'lessons', lessonId);
-        await updateDoc(lessonRef, {
-          content: newContent,
-          vocabulary: newVocabulary,
-          grammar: newGrammar,
-          level: newLevel,
-          difficulty: 'Increased based on user performance'
-        });
-        
-        // Update local state
-        setLesson({
-          ...lesson,
-          content: newContent,
-          vocabulary: newVocabulary,
-          grammar: newGrammar,
-          level: newLevel
-        });
-      }
-      // If average score < 50%, decrease difficulty
-      else if (averageScore < 50) {
-        let newContent = lesson.content || '';
-        let newVocabulary = [...(lesson.vocabulary || [])];
-        let newGrammar = [...(lesson.grammar || [])];
-        let newLevel = currentLevel;
-        
-        // Adjust content based on current level
-        if (currentLevel === 'B1') {
-          newLevel = 'A2';
-          newContent = "Let's simplify the content. Focus on basic daily conversations.\n\n" + newContent.split("\n\n")[0];
-          newVocabulary = newVocabulary.slice(0, Math.max(5, newVocabulary.length - 4));
-          newGrammar = newGrammar.slice(0, Math.max(3, newGrammar.length - 2));
-        } else if (currentLevel === 'A2') {
-          newLevel = 'A1';
-          newContent = "Let's start with the basics. Simple greetings and introductions.\n\n" + newContent.split("\n\n")[0];
-          newVocabulary = newVocabulary.slice(0, Math.max(3, newVocabulary.length - 4));
-          newGrammar = newGrammar.slice(0, Math.max(2, newGrammar.length - 2));
-        }
-        
-        // Update lesson in Firestore
-        const lessonRef = doc(db, 'lessons', lessonId);
-        await updateDoc(lessonRef, {
-          content: newContent,
-          vocabulary: newVocabulary,
-          grammar: newGrammar,
-          level: newLevel,
-          difficulty: 'Decreased based on user performance'
-        });
-        
-        // Update local state
-        setLesson({
-          ...lesson,
-          content: newContent,
-          vocabulary: newVocabulary,
-          grammar: newGrammar,
-          level: newLevel
-        });
-      }
-    } catch (error) {
-      console.error("Error adjusting lesson difficulty:", error);
+  
+  // Navigation functions for slides
+  const goToNextSlide = () => {
+    if (currentSlideIndex < lessonSlides.length - 1) {
+      setCurrentSlideIndex(currentSlideIndex + 1);
     }
   };
+  
+  const goToPrevSlide = () => {
+    if (currentSlideIndex > 0) {
+      setCurrentSlideIndex(currentSlideIndex - 1);
+    }
+  };
+  
+  const goToSlide = (index: number) => {
+    if (index >= 0 && index < lessonSlides.length) {
+      setCurrentSlideIndex(index);
+    }
+  };
+  
+  // Toggle fullscreen presentation mode
+  const toggleFullscreen = () => {
+    if (slideContainerRef.current) {
+      if (!isFullscreen) {
+        if (slideContainerRef.current.requestFullscreen) {
+          slideContainerRef.current.requestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+      setIsFullscreen(!isFullscreen);
+    }
+  };
+  
+  // Listen for fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+  
+  // Toggle between slide view and regular view
+  const toggleSlideView = () => {
+    setSlideViewMode(!slideViewMode);
+    setCurrentSlideIndex(0);
+  };
+  
+  // Keyboard navigation for slides
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!slideViewMode) return;
+      
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+        goToNextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        goToPrevSlide();
+      } else if (e.key === 'Escape') {
+        if (isFullscreen) {
+          toggleFullscreen();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [slideViewMode, currentSlideIndex, lessonSlides.length, isFullscreen]);
 
   // Start quiz
   const handleStartQuiz = () => {
@@ -454,8 +618,7 @@ export default function LessonPage() {
       
       setUserProgress(prevProgress => [newProgress, ...prevProgress]);
       
-      // Check if we need to adjust difficulty with the new progress
-      adjustLessonDifficulty([newProgress, ...userProgress.slice(0, 2)]);
+      // We've removed adjustLessonDifficulty functionality
     } catch (error) {
       console.error("Error saving progress:", error);
     }
@@ -851,6 +1014,354 @@ export default function LessonPage() {
     setShowLessonPlan(false);
   };
 
+  // Render a single slide
+  const renderSlide = (slide: LessonSlide) => {
+    return (
+      <div className="slide-content h-full flex flex-col">
+        <h2 className="slide-title text-3xl font-bold text-primary mb-4">{slide.title}</h2>
+        
+        <div className="slide-body flex-grow flex flex-col">
+          {slide.type === 'objectives' && (
+            <div className="objectives-slide">
+              <p className="text-lg mb-6">{slide.content}</p>
+              
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-blue-700 mb-3">Learning Objectives</h3>
+                <ul className="space-y-2">
+                  {slide.objectives?.map((objective, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <svg className="h-6 w-6 text-green-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{objective}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-xl font-semibold text-blue-700 mb-3">CEFR {slide.title.includes('B1') ? 'B1' : 'Level'} Criteria</h3>
+                <ul className="space-y-2">
+                  {slide.cefrCriteria?.map((criteria, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <svg className="h-6 w-6 text-blue-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{criteria}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          
+          {slide.type === 'intro' && (
+            <div className="intro-slide flex flex-col md:flex-row items-center gap-6 h-full">
+              {slide.imageUrl && (
+                <div className="slide-image relative w-full md:w-1/2 h-64 md:h-full">
+                  <Image 
+                    src={slide.imageUrl} 
+                    alt={slide.title} 
+                    fill 
+                    className="object-cover rounded-lg" 
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
+                </div>
+              )}
+              <div className={`slide-text ${slide.imageUrl ? 'md:w-1/2' : 'w-full'}`}>
+                <p className="text-xl mb-4">{slide.content}</p>
+              </div>
+            </div>
+          )}
+          
+          {slide.type === 'content' && (
+            <div className="content-slide">
+              {slide.isHtml ? (
+                <div className="prose max-w-none">
+                  {parse(slide.content)}
+                </div>
+              ) : (
+                <div className="prose max-w-none">
+                  <p className="text-lg">{slide.content}</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {slide.type === 'vocabulary' && (
+            <div className="vocabulary-slide">
+              <p className="text-lg mb-4">{slide.content}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {slide.vocabulary?.map((item, idx) => (
+                  <div key={idx} className="vocab-item bg-white p-4 rounded-lg shadow">
+                    {renderVocabularyImage(item)}
+                    <div className="font-semibold text-lg text-primary">{item.word || item.term}</div>
+                    <div className="text-gray-700">{item.definition}</div>
+                    {item.usage && (
+                      <div className="text-sm italic text-gray-600 mt-2">"{item.usage}"</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {slide.type === 'grammar' && (
+            <div className="grammar-slide">
+              <p className="text-lg mb-4">{slide.content}</p>
+              <div className="bg-white p-5 rounded-lg shadow-sm">
+                <div className="grammar-rule text-lg font-medium text-primary mb-3">
+                  {slide.grammarPoint?.rule}
+                </div>
+                <div className="grammar-example p-3 bg-gray-50 rounded border-l-4 border-primary">
+                  <p className="italic">{slide.grammarPoint?.example}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {slide.type === 'examples' && (
+            <div className="examples-slide">
+              <p className="text-lg mb-4">{slide.content}</p>
+              <div className="space-y-3">
+                {slide.examples?.map((example, idx) => (
+                  <div key={idx} className="example-item p-3 bg-white rounded-lg shadow-sm border-l-4 border-secondary">
+                    {example}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {slide.type === 'audio' && (
+            <div className="audio-slide flex flex-col items-center">
+              <p className="text-lg mb-4">{slide.content}</p>
+              <div className="bg-white p-6 rounded-lg shadow-sm w-full max-w-md">
+                <audio controls className="w-full mt-3">
+                  <source src={slide.audioUrl} type="audio/mpeg" />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            </div>
+          )}
+          
+          {slide.type === 'video' && (
+            <div className="video-slide">
+              <p className="text-lg mb-4">{slide.content}</p>
+              <div className="relative pt-[56.25%]">
+                {slide.videoUrl && (
+                  <iframe 
+                    src={slide.videoUrl} 
+                    title="Lesson video" 
+                    className="absolute top-0 left-0 w-full h-full rounded-lg"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Show instructor notes only for teachers */}
+          {isTeacher && slide.notes && (
+            <div className="instructor-notes mt-auto pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-medium text-gray-500">Instructor Notes:</h4>
+              <p className="text-sm text-gray-600 italic">{slide.notes}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  // Slide navigation controls
+  const renderSlideControls = () => {
+    return (
+      <div className="slide-controls flex justify-between items-center py-4">
+        <button
+          onClick={goToPrevSlide}
+          disabled={currentSlideIndex === 0}
+          className={`p-2 rounded-full ${currentSlideIndex === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:bg-gray-100'}`}
+          aria-label="Previous slide"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        
+        <div className="slide-indicator flex space-x-1">
+          {lessonSlides.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => goToSlide(idx)}
+              className={`h-2 rounded-full transition-all ${currentSlideIndex === idx ? 'w-4 bg-primary' : 'w-2 bg-gray-300'}`}
+              aria-label={`Go to slide ${idx + 1}`}
+            ></button>
+          ))}
+        </div>
+        
+        <div className="flex space-x-2">
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 text-primary rounded-full hover:bg-gray-100"
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M15 9h4.5M15 9V4.5M9 15v4.5M9 15H4.5M15 15h4.5M15 15v4.5" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+              </svg>
+            )}
+          </button>
+          
+          <button
+            onClick={goToNextSlide}
+            disabled={currentSlideIndex === lessonSlides.length - 1}
+            className={`p-2 rounded-full ${currentSlideIndex === lessonSlides.length - 1 ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:bg-gray-100'}`}
+            aria-label="Next slide"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  };
+  
+  // Slide thumbnails for quick navigation
+  const renderSlideThumbnails = () => {
+    return (
+      <div className="slide-thumbnails mt-8">
+        <h3 className="text-lg font-medium mb-3">All Slides</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {lessonSlides.map((slide, idx) => (
+            <button
+              key={idx}
+              onClick={() => goToSlide(idx)}
+              className={`slide-thumbnail p-2 rounded-lg border ${currentSlideIndex === idx ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+            >
+              <div className="h-16 flex items-center justify-center">
+                <span className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-sm">
+                  {idx + 1}
+                </span>
+              </div>
+              <div className="text-xs text-center truncate mt-1">{slide.title}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Generate learning objectives based on lesson title and CEFR level
+  const generateObjectives = (title: string, level: string): string[] => {
+    // Base objectives depending on the lesson topic
+    let objectives: string[] = [];
+    
+    // Extract topic keywords from title
+    const titleLower = title.toLowerCase();
+    
+    if (titleLower.includes('food') || titleLower.includes('restaurant')) {
+      objectives = [
+        'Order food in a restaurant using appropriate phrases',
+        'Describe different types of food and cooking methods',
+        'Express preferences about food and dining experiences',
+        'Understand restaurant menus and interact with serving staff'
+      ];
+    } else if (titleLower.includes('travel') || titleLower.includes('transport')) {
+      objectives = [
+        'Ask for and give directions to different places',
+        'Purchase tickets for various modes of transportation',
+        'Describe travel experiences and preferences',
+        'Plan a trip and discuss accommodation options'
+      ];
+    } else if (titleLower.includes('family') || titleLower.includes('relationship')) {
+      objectives = [
+        'Describe family members and relationships',
+        'Discuss family traditions and dynamics',
+        'Talk about personal relationships and social connections',
+        'Express emotions and opinions about family matters'
+      ];
+    } else {
+      // Default objectives for any other topic
+      objectives = [
+        `Understand and use vocabulary related to ${title}`,
+        'Engage in simple conversations about the topic',
+        'Comprehend key information in authentic materials',
+        'Express opinions and preferences on the subject'
+      ];
+    }
+    
+    // Adjust complexity based on CEFR level
+    if (level.startsWith('A1')) {
+      objectives = objectives.map(obj => `${obj} using basic phrases and vocabulary`);
+    } else if (level.startsWith('A2')) {
+      objectives = objectives.map(obj => `${obj} using simple structures and common expressions`);
+    } else if (level.startsWith('B1')) {
+      objectives = objectives.map(obj => `${obj} with reasonable fluency and some detail`);
+    } else if (level.startsWith('B2')) {
+      objectives = objectives.map(obj => `${obj} with clarity, detail and appropriate justification`);
+    } else if (level.startsWith('C1') || level.startsWith('C2')) {
+      objectives = objectives.map(obj => `${obj} with precision, nuance and cultural awareness`);
+    }
+    
+    return objectives;
+  };
+  
+  // Generate CEFR criteria based on level
+  const generateCefrCriteria = (level: string): string[] => {
+    switch(level) {
+      case 'A1':
+        return [
+          'Can understand and use familiar everyday expressions and very basic phrases',
+          'Can introduce themselves and others and ask/answer questions about personal details',
+          'Can interact in a simple way provided the other person talks slowly and clearly'
+        ];
+      case 'A2':
+        return [
+          'Can understand sentences and frequently used expressions related to areas of immediate relevance',
+          'Can communicate in simple and routine tasks requiring a direct exchange of information',
+          'Can describe aspects of their background, immediate environment and matters of immediate need'
+        ];
+      case 'B1':
+        return [
+          'Can understand the main points of clear standard input on familiar matters regularly encountered',
+          'Can deal with most situations likely to arise while traveling in an area where the language is spoken',
+          'Can produce simple connected text on topics of personal interest',
+          'Can describe experiences, events, dreams, and ambitions and briefly give reasons for opinions'
+        ];
+      case 'B2':
+        return [
+          'Can understand the main ideas of complex text on both concrete and abstract topics',
+          'Can interact with a degree of fluency and spontaneity that makes regular interaction with native speakers possible',
+          'Can produce clear, detailed text on a wide range of subjects and explain a viewpoint giving advantages and disadvantages'
+        ];
+      case 'C1':
+        return [
+          'Can understand a wide range of demanding, longer texts, and recognize implicit meaning',
+          'Can express ideas fluently and spontaneously without obvious searching for expressions',
+          'Can use language flexibly and effectively for social, academic and professional purposes',
+          'Can produce clear, well-structured, detailed text on complex subjects'
+        ];
+      case 'C2':
+        return [
+          'Can understand with ease virtually everything heard or read',
+          'Can summarize information from different spoken and written sources',
+          'Can express themselves spontaneously, very fluently and precisely, differentiating finer shades of meaning'
+        ];
+      default:
+        return [
+          'Can understand and use familiar everyday expressions',
+          'Can interact in simple conversations on familiar topics',
+          'Can describe aspects of personal background and immediate environment'
+        ];
+    }
+  };
+
   // Show loading state
   if (loading || !lesson) {
     return (
@@ -868,84 +1379,36 @@ export default function LessonPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main id="main-content" className="flex-grow container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          {!quizMode ? (
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h1 className="text-3xl font-bold text-primary">{lesson.title}</h1>
-                  <p className="text-gray-600 mt-1">Level: {lesson.level} • Difficulty: {lesson.difficulty}</p>
-                </div>
-                <div className="flex space-x-3">
-                  {/* Teacher-only Lesson Plan button */}
-                  {isTeacher && (
-                    <button
-                      onClick={generateLessonPlan}
-                      disabled={isGeneratingLessonPlan}
-                      className={`bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center ${isGeneratingLessonPlan ? 'opacity-70 cursor-not-allowed' : ''}`}
-                      aria-label="Generate lesson plan"
-                    >
-                      {isGeneratingLessonPlan ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-                          </svg>
-                          Lesson Plan
-                        </>
-                      )}
-                    </button>
-                  )}
-                  <button
-                    onClick={handleShareLesson}
-                    className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary-dark transition-colors flex items-center"
-                    aria-label="Share lesson"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-                    </svg>
-                    Share Lesson
-                  </button>
-                  <button
-                    onClick={handleStartQuiz}
-                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-                  >
-                    Take Quiz
-                  </button>
-                </div>
+        {!slideViewMode ? (
+          // Regular view with option to switch to slide view
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-primary">{lesson.title}</h1>
+                <p className="text-gray-600 mt-1">Level: {lesson.level} • Difficulty: {lesson.difficulty}</p>
               </div>
-              
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-2">Description</h2>
-                <p className="text-gray-700">{lesson.description}</p>
-              </div>
-              
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-2">Content</h2>
-                <div className="prose max-w-none">
-                  {lesson.content?.split('\n').map((paragraph, index) => (
-                    <p key={index} className="mb-4">{paragraph}</p>
-                  ))}
-                </div>
-              </div>
-              
-              {/* AI Generated Content Section */}
-              <div className="mb-8 border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-primary">AI-Generated Content</h2>
+              <div className="flex space-x-3">
+                {/* Button to enter slide view */}
+                <button
+                  onClick={toggleSlideView}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                  aria-label="View as Slides"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clipRule="evenodd" />
+                  </svg>
+                  View as Slides
+                </button>
+                
+                {/* Teacher-only Lesson Plan button */}
+                {isTeacher && (
                   <button
-                    onClick={generateAIContent}
-                    disabled={isGeneratingAI}
-                    className={`px-4 py-2 rounded-lg text-white ${isGeneratingAI ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} transition-colors flex items-center`}
+                    onClick={generateLessonPlan}
+                    disabled={isGeneratingLessonPlan}
+                    className={`bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center ${isGeneratingLessonPlan ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    aria-label="Generate lesson plan"
                   >
-                    {isGeneratingAI ? (
+                    {isGeneratingLessonPlan ? (
                       <>
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -956,187 +1419,192 @@ export default function LessonPage() {
                     ) : (
                       <>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                          <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
                         </svg>
-                        Refresh AI Content
+                        Lesson Plan
                       </>
                     )}
                   </button>
-                </div>
-                
-                {lesson.aiContent && showAIContent ? (
-                  <div className="space-y-6">
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Practice Sentences</h3>
-                      <div className="space-y-2">
-                        {lesson.aiContent.sentences.map((sentence, index) => (
-                          <div key={index} className="p-2 bg-gray-50 rounded border-l-4 border-indigo-300">
-                            {sentence}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Vocabulary</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {lesson.aiContent.vocab.map((item, index) => (
-                          <div key={index} className="p-3 bg-gray-50 rounded border border-indigo-100">
-                            <div className="font-semibold text-indigo-800">{item.word}</div>
-                            <div className="text-gray-700 text-sm">{item.definition}</div>
-                            <div className="text-gray-600 text-sm italic mt-1">"{item.usage}"</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <h3 className="text-lg font-medium text-indigo-700 mb-2">Grammar Focus</h3>
-                      <div className="p-3 bg-gray-50 rounded">
-                        <div className="font-medium mb-1">{lesson.aiContent.grammar.rule}</div>
-                        <div className="text-gray-700 italic">Example: {lesson.aiContent.grammar.example}</div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">
-                      {isGeneratingAI ? 
-                        'Generating personalized content based on your proficiency level...' : 
-                        'Click the button above to generate personalized AI content for this lesson.'}
-                    </p>
-                  </div>
                 )}
+                
+                <button
+                  onClick={handleShareLesson}
+                  className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary-dark transition-colors flex items-center"
+                  aria-label="Share lesson"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                  </svg>
+                  Share Lesson
+                </button>
+                
+                <button
+                  onClick={handleStartQuiz}
+                  className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                >
+                  Take Quiz
+                </button>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Vocabulary</h2>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {lesson.vocabulary?.map((word, index) => (
-                      <li key={index} className="text-gray-700">{word.term}: {word.definition}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Grammar Points</h2>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {lesson.grammar?.map((point, index) => (
-                      <li key={index} className="text-gray-700">{point.question}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              
-              {userProgress.length > 0 && (
-                <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                  <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {userProgress.map((progress) => (
-                      <div key={progress.id} className="bg-white p-3 rounded shadow">
-                        <div className="text-lg font-semibold text-primary">{progress.score}%</div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(progress.timestamp).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-          ) : (
-            <div>
-              {!quizCompleted ? (
-                <div>
-                  <h1 className="text-2xl font-bold mb-8 text-center">Quiz: {lesson.title}</h1>
-                  
-                  <div className="mb-4 text-center">
-                    <span className="text-sm bg-gray-100 px-3 py-1 rounded-full">
-                      Question {currentQuizIndex + 1} of {lesson.quiz.length}
-                    </span>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-6 rounded-lg mb-6">
-                    <h2 className="text-xl font-semibold mb-4">
-                      {lesson.quiz[currentQuizIndex].question}
-                    </h2>
-                    
-                    <div className="space-y-3">
-                      {lesson.quiz[currentQuizIndex].options.map((option: number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | PromiseLikeOfReactNode | SetStateAction<string> | null | undefined, index: Key | null | undefined) => (
-                        <div 
-                          key={index}
-                          onClick={() => setSelectedAnswer(String(option))}
-                          onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click(); }}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                            selectedAnswer === option 
-                              ? 'border-primary bg-primary bg-opacity-10' 
-                              : 'border-gray-200 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="flex items-center">
-                            <div className={`w-6 h-6 flex items-center justify-center rounded-full mr-3 ${
-                              selectedAnswer === option 
-                                ? 'bg-primary text-white' 
-                                : 'bg-gray-200'
-                            }`}>
-                              {String.fromCharCode(65 + Number(index ?? 0))}
-                            </div>
-                            <span>{String(option)}</span>
-                          </div>
+            
+            {/* Regular lesson content view */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-2">Description</h2>
+              <p className="text-gray-700">{lesson.description}</p>
+            </div>
+            
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-2">Content</h2>
+              <div className="prose max-w-none">
+                {lesson.content?.split('\n').map((paragraph, index) => (
+                  <p key={index} className="mb-4">{paragraph}</p>
+                ))}
+              </div>
+            </div>
+            
+            {/* AI Generated Content Section */}
+            <div className="mb-8 border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-primary">AI-Generated Content</h2>
+                <button
+                  onClick={generateAIContent}
+                  disabled={isGeneratingAI}
+                  className={`px-4 py-2 rounded-lg text-white ${isGeneratingAI ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} transition-colors flex items-center`}
+                >
+                  {isGeneratingAI ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                      </svg>
+                      Refresh AI Content
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {lesson.aiContent && showAIContent ? (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-indigo-700 mb-2">Practice Sentences</h3>
+                    <div className="space-y-2">
+                      {lesson.aiContent.sentences.map((sentence, index) => (
+                        <div key={index} className="p-2 bg-gray-50 rounded border-l-4 border-indigo-300">
+                          {sentence}
                         </div>
                       ))}
                     </div>
                   </div>
                   
-                  <div className="flex justify-end">
-                    <button
-                      onClick={handleSubmitAnswer}
-                      onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click(); }}
-                      disabled={!selectedAnswer}
-                      className={`px-6 py-2 rounded-lg ${
-                        selectedAnswer 
-                          ? 'bg-primary text-white hover:bg-primary-dark' 
-                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      } transition-colors`}
-                    >
-                      {currentQuizIndex < lesson.quiz.length - 1 ? 'Next' : 'Finish'}
-                    </button>
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-indigo-700 mb-2">Vocabulary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {lesson.aiContent.vocab.map((item, index) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded border border-indigo-100">
+                          <div className="font-semibold text-indigo-800">{item.word}</div>
+                          <div className="text-gray-700 text-sm">{item.definition}</div>
+                          <div className="text-gray-600 text-sm italic mt-1">"{item.usage}"</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <h3 className="text-lg font-medium text-indigo-700 mb-2">Grammar Focus</h3>
+                    <div className="p-3 bg-gray-50 rounded">
+                      <div className="font-medium mb-1">{lesson.aiContent.grammar.rule}</div>
+                      <div className="text-gray-700 italic">Example: {lesson.aiContent.grammar.example}</div>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-10">
-                  <h1 className="text-2xl font-bold mb-4">Quiz Completed!</h1>
-                  <div className="mb-6">
-                    <div className="text-5xl font-bold text-primary mb-2">
-                      {Math.round((score / lesson.quiz.length) * 100)}%
-                    </div>
-                    <p className="text-gray-600">
-                      You answered {score} out of {lesson.quiz.length} questions correctly
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => setQuizMode(false)}
-                      onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click(); }}
-                      className="block w-full sm:w-auto sm:inline-block px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-                    >
-                      Return to Lesson
-                    </button>
-                    <button
-                      onClick={handleStartQuiz}
-                      onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click(); }}
-                      className="block w-full sm:w-auto sm:inline-block px-6 py-2 bg-white border border-primary text-primary rounded-lg hover:bg-gray-50 transition-colors sm:ml-3"
-                    >
-                      Retry Quiz
-                    </button>
-                  </div>
+                <div className="text-center py-8">
+                  <p className="text-gray-500">
+                    {isGeneratingAI ? 
+                      'Generating personalized content based on your proficiency level...' : 
+                      'Click the button above to generate personalized AI content for this lesson.'}
+                  </p>
                 </div>
               )}
             </div>
-          )}
-        </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Vocabulary</h2>
+                <ul className="list-disc pl-5 space-y-1">
+                  {lesson.vocabulary?.map((word, index) => (
+                    <li key={index} className="text-gray-700">{word.term}: {word.definition}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Grammar Points</h2>
+                <ul className="list-disc pl-5 space-y-1">
+                  {lesson.grammar?.map((point, index) => (
+                    <li key={index} className="text-gray-700">{point.question}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            {userProgress.length > 0 && (
+              <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+                <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {userProgress.map((progress) => (
+                    <div key={progress.id} className="bg-white p-3 rounded shadow">
+                      <div className="text-lg font-semibold text-primary">{progress.score}%</div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(progress.timestamp).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Slide view
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden" ref={slideContainerRef}>
+            <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
+              <div>
+                <h1 className="text-xl font-bold text-primary">{lesson.title}</h1>
+                <p className="text-sm text-gray-600">Level: {lesson.level} • Slide {currentSlideIndex + 1} of {lessonSlides.length}</p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={toggleSlideView}
+                  className="text-gray-600 hover:text-gray-800 p-2 rounded-full hover:bg-gray-100"
+                  aria-label="Exit slide view"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-8 min-h-[60vh]">
+              {lessonSlides.length > 0 ? renderSlide(lessonSlides[currentSlideIndex]) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No slides available for this lesson.</p>
+                </div>
+              )}
+            </div>
+            
+            {lessonSlides.length > 0 && renderSlideControls()}
+            
+            {!isFullscreen && lessonSlides.length > 0 && renderSlideThumbnails()}
+          </div>
+        )}
       </main>
       <Footer />
       {showToast && <CustomToast message={toastMessage} onClose={() => setShowToast(false)} />}
