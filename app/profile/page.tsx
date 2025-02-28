@@ -13,6 +13,11 @@ import {
   getDoc,
   addDoc,
   serverTimestamp,
+  updateDoc,
+  limit,
+  orderBy,
+  setDoc,
+  Timestamp
 } from 'firebase/firestore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -43,6 +48,28 @@ interface UserProgress {
   timestamp: any;
 }
 
+interface Challenge {
+  id: string;
+  lessonId: string;
+  question: string;
+  hint?: string;
+}
+
+interface ChallengeResponse {
+  id?: string;
+  userId: string;
+  challengeId: string;
+  response: string;
+  submittedAt: Timestamp;
+}
+
+interface Reward {
+  id: string;
+  title: string;
+  description: string;
+  cost: number;
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -50,6 +77,21 @@ export default function ProfilePage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [syncStatus, setSyncStatus] = useState<string>('');
   const [exportStatus, setExportStatus] = useState<string>('');
+  
+  // For Daily Challenge
+  const [dailyChallenge, setDailyChallenge] = useState<Challenge | null>(null);
+  const [challengeResponse, setChallengeResponse] = useState<string>('');
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [challengeSubmitStatus, setChallengeSubmitStatus] = useState<string>('');
+  
+  // For Reward Center
+  const [rewards, setRewards] = useState<Reward[]>([
+    { id: 'reward1', title: 'Extra Practice Session', description: 'Unlock an extra practice session with advanced materials', cost: 50 },
+    { id: 'reward2', title: 'Badge: Language Explorer', description: 'Earn a special badge for your profile', cost: 100 },
+    { id: 'reward3', title: 'Custom Avatar', description: 'Unlock a custom avatar for your profile', cost: 150 }
+  ]);
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [rewardStatus, setRewardStatus] = useState<string>('');
   
   const router = useRouter();
 
@@ -59,6 +101,8 @@ export default function ProfilePage() {
       if (user) {
         setUser(user);
         fetchUserData(user.uid);
+        fetchDailyChallenge();
+        fetchUserPoints(user.uid);
         setLoading(false);
       } else {
         router.push('/login');
@@ -223,12 +267,163 @@ export default function ProfilePage() {
     }
   };
 
+  // Fetch a random daily challenge
+  const fetchDailyChallenge = async () => {
+    try {
+      // First, check if we already have lessons in state
+      const lessonsQuery = query(
+        collection(db, 'lessons'),
+        limit(10)
+      );
+      
+      const lessonsSnapshot = await getDocs(lessonsQuery);
+      
+      if (lessonsSnapshot.empty) {
+        return;
+      }
+      
+      // Randomly select a lesson
+      const lessonDocs = lessonsSnapshot.docs;
+      const randomLesson = lessonDocs[Math.floor(Math.random() * lessonDocs.length)];
+      const lessonData = { id: randomLesson.id, ...randomLesson.data() } as Lesson;
+      
+      // Create a challenge based on the lesson content
+      const challenge: Challenge = {
+        id: `challenge-${Date.now()}`,
+        lessonId: lessonData.id,
+        question: `Create a sentence using vocabulary from the "${lessonData.title}" lesson.`,
+        hint: "Use the words and phrases you've learned in this lesson."
+      };
+      
+      setDailyChallenge(challenge);
+    } catch (error) {
+      console.error('Error fetching daily challenge:', error);
+    }
+  };
+  
+  // Fetch user points
+  const fetchUserPoints = async (userId: string) => {
+    try {
+      const userQuery = query(
+        collection(db, 'users'),
+        where('email', '==', user?.email)
+      );
+      
+      const userSnapshot = await getDocs(userQuery);
+      
+      if (!userSnapshot.empty) {
+        const userData = userSnapshot.docs[0].data();
+        setUserPoints(userData.points || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching user points:', error);
+    }
+  };
+  
+  // Submit challenge response
+  const handleChallengeSubmit = async () => {
+    if (!user || !dailyChallenge || !challengeResponse.trim()) {
+      setChallengeSubmitStatus('Please provide a response to the challenge.');
+      return;
+    }
+    
+    setSubmitting(true);
+    
+    try {
+      const response: ChallengeResponse = {
+        userId: user.uid,
+        challengeId: dailyChallenge.id,
+        response: challengeResponse,
+        submittedAt: Timestamp.now()
+      };
+      
+      await addDoc(collection(db, 'challengeResponses'), response);
+      
+      // Award points for completing the challenge
+      const userQuery = query(
+        collection(db, 'users'),
+        where('email', '==', user.email)
+      );
+      
+      const userSnapshot = await getDocs(userQuery);
+      
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        const userData = userDoc.data();
+        const newPoints = (userData.points || 0) + 10;
+        
+        await updateDoc(doc(db, 'users', userDoc.id), {
+          points: newPoints
+        });
+        
+        setUserPoints(newPoints);
+      }
+      
+      setChallengeResponse('');
+      setChallengeSubmitStatus('Challenge response submitted successfully! You earned 10 points.');
+      
+      // Fetch a new challenge
+      fetchDailyChallenge();
+    } catch (error) {
+      console.error('Error submitting challenge response:', error);
+      setChallengeSubmitStatus('Failed to submit response. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  // Redeem a reward
+  const handleRedeemReward = async (reward: Reward) => {
+    if (!user) {
+      return;
+    }
+    
+    if (userPoints < reward.cost) {
+      setRewardStatus(`You don't have enough points to redeem ${reward.title}.`);
+      return;
+    }
+    
+    try {
+      const userQuery = query(
+        collection(db, 'users'),
+        where('email', '==', user.email)
+      );
+      
+      const userSnapshot = await getDocs(userQuery);
+      
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        const newPoints = userPoints - reward.cost;
+        
+        // Update user points
+        await updateDoc(doc(db, 'users', userDoc.id), {
+          points: newPoints
+        });
+        
+        // Record reward redemption
+        await addDoc(collection(db, 'redemptions'), {
+          userId: user.uid,
+          rewardId: reward.id,
+          rewardTitle: reward.title,
+          cost: reward.cost,
+          redeemedAt: Timestamp.now()
+        });
+        
+        setUserPoints(newPoints);
+        setRewardStatus(`You've successfully redeemed ${reward.title}!`);
+      }
+    } catch (error) {
+      console.error('Error redeeming reward:', error);
+      setRewardStatus('Failed to redeem reward. Please try again.');
+    }
+  };
+
   // Show loading state
   if (loading) {
     return (
       <>
         <Header />
-        <main id="main-content" id="main-content" className="flex-grow flex items-center justify-center p-4 bg-muted">
+        <main id="main-content" className="flex-grow flex items-center justify-center p-4 bg-muted">
           <div className="loader">Loading your profile data...</div>
         </main>
         <Footer />
@@ -239,7 +434,7 @@ export default function ProfilePage() {
   return (
     <>
       <Header />
-      <main id="main-content" id="main-content" className="flex-grow container mx-auto px-4 py-8 max-w-7xl bg-muted">
+      <main id="main-content" className="flex-grow container mx-auto px-4 py-8 max-w-7xl bg-muted">
         <h1 className="text-2xl md:text-3xl font-bold text-primary mb-6 md:mb-8">Your Profile</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
@@ -254,87 +449,128 @@ export default function ProfilePage() {
               <p className="text-gray-600 mb-1 text-sm">Account Created</p>
               <p className="font-medium">{user?.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}</p>
             </div>
+            <div className="mt-4 text-primary">
+              <p className="text-gray-600 mb-1 text-sm">Points Balance</p>
+              <p className="font-bold text-xl">{userPoints} points</p>
+            </div>
           </div>
           
-          {/* Progress Card */}
+          {/* Daily Challenge Card */}
           <div className="bg-white rounded-lg shadow-md p-4 md:p-6 h-full">
-            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">Learning Progress</h2>
-            <div className="mb-3 md:mb-4">
-              <p className="text-gray-600 mb-1 text-sm">Completed Lessons</p>
-              <p className="font-medium">{userProgress.filter(p => p.completed).length}</p>
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">Daily Challenge</h2>
+            {dailyChallenge ? (
+              <>
+                <div className="mb-4">
+                  <h3 className="text-md font-medium text-gray-700 mb-2">Challenge:</h3>
+                  <p className="p-3 bg-gray-50 rounded-md">{dailyChallenge.question}</p>
+                  {dailyChallenge.hint && (
+                    <p className="mt-2 text-sm text-gray-500 italic">Hint: {dailyChallenge.hint}</p>
+                  )}
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="challenge-response" className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Response:
+                  </label>
+                  <textarea
+                    id="challenge-response"
+                    rows={4}
+                    className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={challengeResponse}
+                    onChange={(e) => setChallengeResponse(e.target.value)}
+                    placeholder="Type your response here..."
+                    disabled={submitting}
+                  ></textarea>
+                </div>
+                <button
+                  onClick={handleChallengeSubmit}
+                  disabled={submitting || !challengeResponse.trim()}
+                  className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+                >
+                  {submitting ? 'Submitting...' : 'Submit Response'}
+                </button>
+                {challengeSubmitStatus && (
+                  <p className={`mt-2 text-sm ${challengeSubmitStatus.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
+                    {challengeSubmitStatus}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="flex justify-center items-center h-40">
+                <p className="text-gray-500">Loading today's challenge...</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Reward Center Card */}
+          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 h-full">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">Reward Center</h2>
+            <p className="mb-4 text-gray-600">Redeem your points for these exclusive rewards!</p>
+            <div className="space-y-3">
+              {rewards.map((reward) => (
+                <div key={reward.id} className="border rounded-md p-3 bg-gray-50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium text-gray-800">{reward.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{reward.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-primary">{reward.cost} pts</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRedeemReward(reward)}
+                    disabled={userPoints < reward.cost}
+                    className={`mt-2 w-full py-1.5 px-3 rounded-md text-white font-medium text-sm
+                      ${userPoints >= reward.cost 
+                        ? 'bg-primary hover:bg-primary-dark' 
+                        : 'bg-gray-400 cursor-not-allowed'}`}
+                  >
+                    {userPoints >= reward.cost ? 'Redeem Reward' : 'Not Enough Points'}
+                  </button>
+                </div>
+              ))}
             </div>
-            <div className="mb-2">
-              <p className="text-gray-600 mb-1 text-sm">Average Score</p>
-              <p className="font-medium">
-                {userProgress.length > 0
-                  ? `${Math.round(userProgress.reduce((sum, p) => sum + p.score, 0) / userProgress.length)}%`
-                  : 'No lessons completed yet'}
+            {rewardStatus && (
+              <p className={`mt-3 text-sm ${rewardStatus.includes('successfully') ? 'text-green-600' : rewardStatus.includes('enough') ? 'text-orange-600' : 'text-red-600'}`}>
+                {rewardStatus}
               </p>
-            </div>
-          </div>
-          
-          {/* Tool Integrations Card */}
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 h-full">
-            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">Tool Integrations</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <button aria-label="Button" tabIndex={0} tabIndex={0} 
-                  onClick={syncWithDuolingo} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm md:text-base"
-                >
-                  Sync Progress with Duolingo
-                </button>
-                {syncStatus && (
-                  <p className="text-sm mt-2 text-green-600">{syncStatus}</p>
-                )}
-              </div>
-              
-              <div>
-                <button aria-label="Button" tabIndex={0} tabIndex={0} 
-                  onClick={exportVocabulary} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm md:text-base"
-                >
-                  Export Vocabulary as CSV
-                </button>
-                {exportStatus && (
-                  <p className="text-sm mt-2 text-blue-600">{exportStatus}</p>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </div>
         
-        {/* Recent Activity Section */}
+        {/* User Progress */}
         <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-gray-800">Recent Activity</h2>
+          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6 text-gray-800">Learning Progress</h2>
           
           {userProgress.length > 0 ? (
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <div className="overflow-x-auto rounded-md border border-gray-200">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Lesson
                     </th>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Score
                     </th>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Completed
                     </th>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {userProgress
-                    .sort((a, b) => new Date(b.timestamp?.seconds ? b.timestamp.toDate() : b.timestamp).getTime() - 
-                                   new Date(a.timestamp?.seconds ? a.timestamp.toDate() : a.timestamp).getTime())
-                    .slice(0, 5)
+                    .sort((a, b) => {
+                      const dateA = new Date(a.timestamp?.seconds ? a.timestamp.toDate() : a.timestamp);
+                      const dateB = new Date(b.timestamp?.seconds ? b.timestamp.toDate() : b.timestamp);
+                      return dateB.getTime() - dateA.getTime();
+                    })
                     .map((progress) => {
                       const lesson = lessons.find(l => l.id === progress.lessonId);
+                      
                       return (
                         <tr key={progress.id} className="hover:bg-gray-50">
                           <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
@@ -348,11 +584,12 @@ export default function ProfilePage() {
                             </div>
                           </td>
                           <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              progress.completed 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                              ${
+                                progress.completed 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
                               {progress.completed ? 'Yes' : 'No'}
                             </span>
                           </td>
@@ -368,7 +605,7 @@ export default function ProfilePage() {
           ) : (
             <div className="py-8 text-center">
               <p className="text-gray-500">No activity yet. Start learning to track your progress!</p>
-              <Link tabIndex={0} tabIndex={0} href="/lessons" className="mt-4 inline-block text-primary hover:text-primary-light font-medium">
+              <Link href="/lessons" className="mt-4 inline-block text-primary hover:text-primary-light font-medium">
                 Browse Lessons
               </Link>
             </div>
