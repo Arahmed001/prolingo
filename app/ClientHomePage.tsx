@@ -57,12 +57,27 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
                     {t('startLearning') || 'Start Learning'}
                   </Link>
                   <Link tabIndex={0} 
-                    href="/about" 
+                    href="/marketing" 
                     className="py-3 px-8 rounded-full text-center font-medium bg-white/10 hover:bg-white/20 transition"
+                    role="button"
+                    aria-label="Learn more about ProLingo marketing"
+                  >
+                    <span className="flex items-center justify-center">
+                      <span>Marketing</span>
+                      <svg className="w-5 h-5 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </span>
+                  </Link>
+                </div>
+                <div className="mt-4">
+                  <Link tabIndex={0} 
+                    href="/about" 
+                    className="text-white/80 hover:text-white underline text-sm flex items-center"
                     role="button"
                     aria-label="Learn more about ProLingo"
                   >
-                    {t('about') || 'About'}
+                    {t('about') || 'About'} <span className="ml-1">→</span>
                   </Link>
                 </div>
               </div>
@@ -123,6 +138,24 @@ export default function ClientHomePage({ features }: ClientHomePageProps) {
                 aria-label="Explore all features"
               >
                 {t('exploreFeatures', 'Explore All Features')}
+              </Link>
+            </div>
+          </div>
+        </section>
+        
+        {/* Marketing Banner */}
+        <section className="py-12 bg-blue-600 text-white">
+          <div className="container mx-auto max-w-7xl px-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold">Want to learn more about ProLingo?</h2>
+                <p className="mt-2 text-blue-100">Check out our marketing page for more information and testimonials.</p>
+              </div>
+              <Link 
+                href="/marketing" 
+                className="px-6 py-3 bg-white text-blue-600 rounded-md font-medium hover:bg-blue-50 transition-colors"
+              >
+                Visit Marketing Page
               </Link>
             </div>
           </div>

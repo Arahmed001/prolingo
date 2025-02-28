@@ -2,7 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Poppins, Open_Sans } from "next/font/google"
 import Footer from './components/Footer'
-import Header from './components/Header'
+import Sidebar from './components/Sidebar'
 import AccessibilityProvider from './components/AccessibilityProvider'
 import DataInitializer from './components/DataInitializer'
 import I18nProvider from './components/I18nProvider'
@@ -33,13 +33,19 @@ function RootLayout({
 }) {
   return (
     <html lang="en" className={`${poppins.variable} ${openSans.variable}`}>
-      <body className={`${openSans.className} min-h-screen flex flex-col`}>
+      <body className={`${openSans.className} min-h-screen`}>
         <AccessibilityProvider />
         <DataInitializer />
         <I18nProvider>
-          <Header />
-          {children}
-          <Footer />
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <div className="flex-1 flex flex-col">
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </div>
         </I18nProvider>
       </body>
     </html>
