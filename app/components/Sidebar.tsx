@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from './I18nProvider';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 // Interface for navigation items
 interface NavItem {
@@ -98,8 +99,7 @@ export default function Sidebar() {
       ),
       children: [
         { label: t('users') || 'Users', href: '/admin/users' },
-        { label: t('content') || 'Content', href: '/admin/content' },
-        { label: t('settings') || 'Settings', href: '/admin/settings' }
+        { label: t('content') || 'Content', href: '/admin/content' }
       ]
     },
     {
