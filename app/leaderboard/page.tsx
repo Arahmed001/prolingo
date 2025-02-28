@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, getDocs, startAfter, endBefore, limitToLast } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { useRouter } from 'next/navigation';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
+import Leaderboard from '@/app/components/Leaderboard';
+import RewardsBadges from '@/app/components/RewardsBadges';
 
 // Prevent static prerendering
 export const dynamic = 'force-dynamic';
@@ -14,297 +19,177 @@ interface User {
 }
 
 export default function LeaderboardPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [lastVisible, setLastVisible] = useState<any>(null);
-  const [firstVisible, setFirstVisible] = useState<any>(null);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [hasPrevPage, setHasPrevPage] = useState(false);
-  const usersPerPage = 5;
-
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
   useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      // Create a query to get top 5 users by score
-      const usersQuery = query(
-        collection(db, 'users'),
-        orderBy('score', 'desc'),
-        limit(usersPerPage + 1) // Get one extra to check if there's a next page
-      );
-      
-      const snapshot = await getDocs(usersQuery);
-      
-      // Check if there's a next page
-      setHasNextPage(snapshot.docs.length > usersPerPage);
-      
-      // Remove the extra document if it exists
-      const docs = hasNextPage ? snapshot.docs.slice(0, usersPerPage) : snapshot.docs;
-      
-      // Set first and last visible documents for pagination
-      setFirstVisible(docs[0]);
-      setLastVisible(docs[docs.length - 1]);
-      
-      // Map the documents to User objects
-      const userData = docs.map((doc) => ({
-        id: doc.id,
-        email: doc.data().email || 'Anonymous',
-        score: doc.data().score || 0
-      }));
-      
-      setUsers(userData);
-      setHasPrevPage(false); // First page has no previous page
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      // If there's an error, provide some sample data
-      setUsers([
-        { id: '1', email: 'user1@example.com', score: 950 },
-        { id: '2', email: 'user2@example.com', score: 820 },
-        { id: '3', email: 'user3@example.com', score: 780 },
-        { id: '4', email: 'user4@example.com', score: 650 },
-        { id: '5', email: 'user5@example.com', score: 520 }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchNextPage = async () => {
-    if (!lastVisible) return;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthenticated(!!user);
+      if (!user) {
+        router.push('/login');
+      }
+    });
     
-    setLoading(true);
-    try {
-      const nextQuery = query(
-        collection(db, 'users'),
-        orderBy('score', 'desc'),
-        startAfter(lastVisible),
-        limit(usersPerPage + 1)
-      );
-      
-      const snapshot = await getDocs(nextQuery);
-      
-      // Check if there's a next page
-      setHasNextPage(snapshot.docs.length > usersPerPage);
-      
-      // Remove the extra document if it exists
-      const docs = hasNextPage ? snapshot.docs.slice(0, usersPerPage) : snapshot.docs;
-      
-      if (docs.length === 0) {
-        setHasNextPage(false);
-        return;
-      }
-      
-      // Set first and last visible documents for pagination
-      setFirstVisible(docs[0]);
-      setLastVisible(docs[docs.length - 1]);
-      
-      // Map the documents to User objects
-      const userData = docs.map((doc) => ({
-        id: doc.id,
-        email: doc.data().email || 'Anonymous',
-        score: doc.data().score || 0
-      }));
-      
-      setUsers(userData);
-      setHasPrevPage(true);
-      setCurrentPage(currentPage + 1);
-    } catch (error) {
-      console.error('Error fetching next page:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPrevPage = async () => {
-    if (!firstVisible) return;
-    
-    setLoading(true);
-    try {
-      const prevQuery = query(
-        collection(db, 'users'),
-        orderBy('score', 'desc'),
-        endBefore(firstVisible),
-        limitToLast(usersPerPage)
-      );
-      
-      const snapshot = await getDocs(prevQuery);
-      
-      if (snapshot.docs.length === 0) {
-        setHasPrevPage(false);
-        return;
-      }
-      
-      // Set first and last visible documents for pagination
-      setFirstVisible(snapshot.docs[0]);
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      
-      // Map the documents to User objects
-      const userData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        email: doc.data().email || 'Anonymous',
-        score: doc.data().score || 0
-      }));
-      
-      setUsers(userData);
-      setHasNextPage(true);
-      setCurrentPage(currentPage - 1);
-      
-      // If we're back to page 1, there's no previous page
-      if (currentPage - 1 <= 1) {
-        setHasPrevPage(false);
-      }
-    } catch (error) {
-      console.error('Error fetching previous page:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // For demonstration purposes, we'll use these functions for the static pagination
-  const handleNextPage = () => {
-    // For now, we'll just increment the page number for UI feedback
-    // In a real implementation, this would call fetchNextPage()
-    setCurrentPage(currentPage + 1);
-  };
-
-  const handlePrevPage = () => {
-    // For now, we'll just decrement the page number for UI feedback
-    // In a real implementation, this would call fetchPrevPage()
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
+    return () => unsubscribe();
+  }, [router]);
+  
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4">Loading leaderboard...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
   return (
-    <div id="main-content" className="min-h-screen bg-muted py-12 px-4 sm:px-6 lg:px-8">
-      <div id="main-content" className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div id="main-content" className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-primary mb-4">Leaderboard</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            See how you rank against other ProLingo learners. Keep practicing to climb the ranks!
-          </p>
-        </div>
-
-        {/* Leaderboard Table */}
-        <div id="main-content" className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
-          {loading ? (
-            <div id="main-content" className="p-8 text-center">
-              <div id="main-content" className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-              <p className="mt-4 text-muted-foreground">Loading leaderboard data...</p>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-grow p-4 md:p-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">Leaderboard</h1>
+            <p className="text-gray-600">See how you rank against other learners and earn your spot at the top!</p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Leaderboard limitCount={15} />
             </div>
-          ) : (
-            <div id="main-content" className="overflow-x-auto">
+            
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold mb-4">How It Works</h2>
+                <div className="space-y-4">
+                  <div className="flex items-start">
+                    <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">
+                      1
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Complete Lessons</h3>
+                      <p className="text-sm text-gray-600">Earn XP by completing lessons and quizzes</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">
+                      2
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Maintain Streaks</h3>
+                      <p className="text-sm text-gray-600">Log in daily to build your streak for bonus XP</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">
+                      3
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Complete Challenges</h3>
+                      <p className="text-sm text-gray-600">Take on special challenges for XP boosts</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <div className="bg-blue-100 text-blue-800 rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">
+                      4
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Earn Badges</h3>
+                      <p className="text-sm text-gray-600">Collect badges to showcase your achievements</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-md p-6 text-white">
+                <h2 className="text-xl font-bold mb-3">Weekly Challenge</h2>
+                <p className="mb-4">Complete 5 lessons this week to earn the "Weekly Champion" badge and 50 bonus XP!</p>
+                <div className="w-full bg-white/20 rounded-full h-2.5 mb-2">
+                  <div className="bg-white h-2.5 rounded-full" style={{ width: '40%' }}></div>
+                </div>
+                <div className="text-sm text-white/80">2 of 5 lessons completed</div>
+                <button className="mt-4 bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-blue-50 transition-colors">
+                  Start Learning
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8">
+            <RewardsBadges 
+              className="bg-white rounded-lg shadow-md p-6"
+              rewards={[
+                {
+                  name: 'First Lesson',
+                  description: 'Completed your first lesson',
+                  icon: '🎓',
+                  date: new Date(),
+                  type: 'achievement'
+                },
+                {
+                  name: 'Perfect Score',
+                  description: 'Achieved 100% on a quiz',
+                  icon: '🏆',
+                  date: new Date(),
+                  type: 'badge'
+                },
+                {
+                  name: '3-Day Streak',
+                  description: 'Logged in for 3 consecutive days',
+                  icon: '🔥',
+                  date: new Date(),
+                  type: 'achievement'
+                }
+              ]}
+            />
+          </div>
+          
+          <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold mb-4">Leaderboard History</h2>
+            <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead>
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rank
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Score
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Winner</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">XP Earned</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prize</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {users.map((user, index) => {
-                    // Calculate the actual rank based on the current page
-                    const rank = (currentPage - 1) * usersPerPage + index + 1;
-                    
-                    return (
-                      <tr key={user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div id="main-content" className="flex items-center">
-                            <div id="main-content" className={`
-                              flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-white font-medium
-                              ${rank === 1 ? 'bg-yellow-500' : 
-                                rank === 2 ? 'bg-gray-400' : 
-                                rank === 3 ? 'bg-amber-700' : 'bg-primary'}
-                            `}>
-                              {rank}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div id="main-content" className="text-sm font-medium text-gray-900">
-                            {user.email.split('@')[0]}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div id="main-content" className="text-sm font-bold text-primary">
-                            {user.score.toLocaleString()}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  
-                  {/* If no users are found, show a message */}
-                  {users.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
-                        No users found. Be the first to join the leaderboard!
-                      </td>
-                    </tr>
-                  )}
+                  <tr>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">April 2023</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Sarah Johnson</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1,250 XP</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Gold Trophy + Premium Month</td>
+                  </tr>
+                  <tr>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">March 2023</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Michael Chen</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1,120 XP</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Gold Trophy + Premium Month</td>
+                  </tr>
+                  <tr>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">February 2023</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Emma Rodriguez</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">980 XP</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Gold Trophy + Premium Month</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-          )}
-          
-          {/* Pagination */}
-          <div id="main-content" className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-            <div id="main-content" className="text-sm text-gray-700">
-              Page {currentPage}
-            </div>
-            <div id="main-content" className="flex space-x-2">
-              <button
-                onClick={handlePrevPage} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
-                disabled={currentPage <= 1}
-                className={`px-4 py-2 border rounded-md text-sm font-medium ${
-                  currentPage <= 1
-                    ? 'border-gray-300 text-gray-400 cursor-not-allowed'
-                    : 'border-primary text-primary hover:bg-primary/10'
-                }`}
-              >
-                Prev
-              </button>
-              <button
-                onClick={handleNextPage} onKeyDown={(e) => { if(e.key === "Enter" || e.key === " ") e.target.click(); }}
-                className="px-4 py-2 border border-primary rounded-md text-sm font-medium text-primary hover:bg-primary/10"
-              >
-                Next
-              </button>
-            </div>
           </div>
         </div>
-        
-        {/* Info Section */}
-        <div id="main-content" className="bg-white rounded-xl shadow-md overflow-hidden p-6">
-          <h2 className="text-2xl font-bold text-primary mb-4">How Scoring Works</h2>
-          <div id="main-content" className="space-y-4">
-            <p className="text-muted-foreground">
-              Your score is calculated based on several factors:
-            </p>
-            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-              <li>Completing lessons: +10 points each</li>
-              <li>Quiz scores: Up to +50 points based on percentage correct</li>
-              <li>Daily streaks: +5 points per day</li>
-              <li>Perfect quizzes (100%): +20 bonus points</li>
-            </ul>
-            <p className="text-muted-foreground">
-              Keep learning consistently to maximize your score and climb the leaderboard!
-            </p>
-          </div>
-        </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 } 
